@@ -1108,6 +1108,13 @@
     display: none !important;
 }
 
+/* Standalone app pages (inbox.html / profile.html) — offsets the fixed
+   navbar the same way .hero does on the landing page. */
+.app-page {
+    padding-top: 100px;
+    min-height: 80vh;
+}
+
 .text-center { text-align: center; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }

@@ -8,11 +8,12 @@
 
 class MstkhbyApp {
     constructor() {
+        // Only the home page (index.html) still uses hash routing, for
+        // the public-profile-by-username links (index.html#username).
+        // /inbox and /profile are real standalone pages now — see
+        // inbox.html / profile.html and initInboxPage()/initProfilePage().
         this.routes = {
             '/': 'home',
-            '/inbox': 'inbox',
-            '/profile': 'profile',
-            '/settings': 'settings',
             '/:username': 'publicProfile'
         };
         
@@ -39,9 +40,22 @@ class MstkhbyApp {
             // this.currentUser is still null (even for a returning,
             // logged-in user) and wrongly bounces them to the login page.
             await window.authService?.authReady;
-            
-            // Setup router
-            this.setupRouter();
+
+            // Each real page (index.html / inbox.html / profile.html)
+            // sets <body data-page="..."> so this one shared app.js can
+            // do the right thing on each without hash routing.
+            const page = document.body.dataset.page || 'home';
+
+            if (page === 'inbox') {
+                await this.initInboxPage();
+            } else if (page === 'profile') {
+                await this.initProfilePage();
+            } else {
+                // Home page keeps hash routing (only used now for
+                // index.html#username public-profile links).
+                this.setupRouter();
+                this.checkPendingAuthRedirect();
+            }
             
             // Register service worker for PWA
             this.registerServiceWorker();
@@ -107,12 +121,12 @@ class MstkhbyApp {
             // User is logged in
             if (loginBtn) {
                 loginBtn.textContent = 'الصندوق الوارد';
-                loginBtn.onclick = () => this.navigateTo('/inbox');
+                loginBtn.onclick = () => { window.location.href = 'inbox.html'; };
             }
             
             if (signupBtn) {
                 signupBtn.textContent = 'حسابي';
-                signupBtn.onclick = () => this.navigateTo('/profile');
+                signupBtn.onclick = () => { window.location.href = 'profile.html'; };
             }
 
             // Show user avatar in nav
@@ -143,7 +157,7 @@ class MstkhbyApp {
             avatar.innerHTML = user.photoURL 
                 ? `<img src="${user.photoURL}" alt="Avatar">`
                 : user.displayName?.[0]?.toUpperCase() || '👤';
-            avatar.onclick = () => this.navigateTo('/profile');
+            avatar.onclick = () => { window.location.href = 'profile.html'; };
             avatar.style.cssText = `
                 width: 36px;
                 height: 36px;
@@ -193,6 +207,26 @@ class MstkhbyApp {
     }
 
     /**
+     * If the user was bounced here from a protected page (inbox.html /
+     * profile.html?login=1&next=...) either open the login modal, or —
+     * if they're actually already logged in (e.g. came back via the
+     * browser back button) — send them straight on to where they wanted.
+     */
+    checkPendingAuthRedirect() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('login') !== '1') return;
+
+        const next = params.get('next') === 'profile' ? 'profile.html' : 'inbox.html';
+
+        if (this.currentUser) {
+            window.location.href = next;
+            return;
+        }
+
+        window.uiManager?.openAuthModal(false);
+    }
+
+    /**
      * Navigate to a route
      */
     navigateTo(path) {
@@ -215,19 +249,18 @@ class MstkhbyApp {
             case '':
                 this.showHomePage();
                 break;
-                
+
+            // Backward-compat: redirect any old #/inbox, #/profile,
+            // #/settings links to the real standalone pages.
             case 'inbox':
-                await this.showInboxPage();
+                window.location.href = 'inbox.html';
                 break;
-                
+
             case 'profile':
-                await this.showProfilePage();
-                break;
-                
             case 'settings':
-                await this.showSettingsPage();
+                window.location.href = 'profile.html';
                 break;
-                
+
             default:
                 // Check if it's a username (public profile)
                 if (params.length === 0 && path.length > 2) {
@@ -269,82 +302,23 @@ class MstkhbyApp {
     }
 
     /**
-     * Show inbox page
+     * Init inbox page (inbox.html — markup is static in the page itself)
      */
-    async showInboxPage() {
+    async initInboxPage() {
         if (!this.currentUser) {
-            window.uiManager?.openAuthModal(false);
-            this.navigateTo('/');
+            window.location.href = 'index.html?login=1&next=inbox';
             return;
         }
 
-        // Create inbox page if it doesn't exist
-        let inboxPage = document.getElementById('inbox-page');
-        
-        if (!inboxPage) {
-            inboxPage = this.createInboxPage();
-            document.body.appendChild(inboxPage);
-        }
-
-        this.hideDynamicPages();
-        inboxPage.classList.remove('hidden');
-        inboxPage.classList.add('page-enter');
-
-        // Load messages
-        await this.loadInboxMessages();
-    }
-
-    /**
-     * Create inbox page element
-     */
-    createInboxPage() {
-        const page = document.createElement('div');
-        page.id = 'inbox-page';
-        page.className = 'dynamic-page hidden';
-        page.innerHTML = `
-            <div class="inbox-container">
-                <div class="inbox-header">
-                    <h1>📬 صندوق الوارد</h1>
-                    <div class="inbox-filters">
-                        <button class="filter-btn active" data-filter="all">الكل</button>
-                        <button class="filter-btn" data-filter="unread">غير مقروءة</button>
-                        <button class="filter-btn" data-filter="media">وسائط</button>
-                    </div>
-                </div>
-
-                <div class="messages-list" id="messagesList">
-                    <!-- Messages will be loaded here -->
-                    <div class="loading-skeleton">
-                        ${this.generateSkeletonLoaders(5)}
-                    </div>
-                </div>
-
-                <!-- Message Detail View (hidden by default) -->
-                <div class="message-detail hidden" id="messageDetail">
-                    <!-- Will be populated dynamically -->
-                </div>
-            </div>
-        `;
-
-        // Bind filter buttons
-        page.querySelectorAll('.filter-btn').forEach(btn => {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                page.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.loadInboxMessages(btn.dataset.filter);
             });
         });
 
-        return page;
-    }
-
-    /**
-     * Generate skeleton loaders
-     */
-    generateSkeletonLoaders(count) {
-        return Array(count).fill(0).map(() => `
-            <div class="message-item skeleton" style="height: 100px; margin-bottom: 16px;"></div>
-        `).join('');
+        await this.loadInboxMessages();
     }
 
     /**
@@ -429,7 +403,7 @@ class MstkhbyApp {
                 </div>
                 <p class="message-preview-text">${this.escapeHtml(message.content)}</p>
                 <div class="message-meta">
-                    ${destructOption !== 'normal' ? (destructIndicator[message.destructOption] || '') : ''}
+                    ${message.destructOption && message.destructOption !== 'normal' ? (destructIndicator[message.destructOption] || '') : ''}
                     ${message.mediaUrl ? '<span class="message-type-indicator">' + window.storageService?.getFileTypeIcon(message.mediaType) + '</span>' : ''}
                     <div class="message-actions">
                         <button class="action-btn" onclick="event.stopPropagation(); window.app.deleteMessage('${message.id}')" title="حذف">🗑️</button>
@@ -593,85 +567,24 @@ class MstkhbyApp {
     }
 
     /**
-     * Show profile page
+     * Init profile page (profile.html — markup is static in the page itself,
+     * tabs are: info / analytics / links / settings)
      */
-    async showProfilePage() {
+    async initProfilePage() {
         if (!this.currentUser) {
-            window.uiManager?.openAuthModal(false);
+            window.location.href = 'index.html?login=1&next=profile';
             return;
         }
 
-        let profilePage = document.getElementById('profile-page');
-        
-        if (!profilePage) {
-            profilePage = this.createProfilePage();
-            document.body.appendChild(profilePage);
-        }
-
-        this.hideDynamicPages();
-        profilePage.classList.remove('hidden');
-        profilePage.classList.add('page-enter');
-
-        await this.loadProfileData();
-    }
-
-    /**
-     * Create profile page
-     */
-    createProfilePage() {
-        const page = document.createElement('div');
-        page.id = 'profile-page';
-        page.className = 'dynamic-page hidden';
-        page.innerHTML = `
-            <div class="profile-container">
-                <div class="profile-header" id="profileHeader">
-                    <div class="profile-avatar" id="profileAvatar">👤</div>
-                    <h2 class="profile-name" id="profileName">تحميل...</h2>
-                    <span class="profile-username" id="profileUsername">@username</span>
-                    <div class="profile-link-card" id="profileLinkCard">
-                        <span>🔗</span>
-                        <span id="profileLink">mstkhby.com/username</span>
-                        <button class="btn btn-sm btn-ghost" onclick="window.uiManager?.copyToClipboard(document.getElementById('profileLink').textContent)">نسخ</button>
-                    </div>
-                </div>
-
-                <div class="profile-stats">
-                    <div class="profile-stat">
-                        <div class="profile-stat-value" id="statMessages">0</div>
-                        <div class="profile-stat-label">رسالة مستلمة</div>
-                    </div>
-                    <div class="profile-stat">
-                        <div class="profile-stat-value" id="statReactions">0</div>
-                        <div class="profile-stat-label">تفاعل</div>
-                    </div>
-                    <div class="profile-stat">
-                        <div class="profile-stat-value" id="statDays">0</div>
-                        <div class="profile-stat-label">يوم نشط</div>
-                    </div>
-                </div>
-
-                <div class="profile-tabs">
-                    <button class="profile-tab active" data-tab="info">المعلومات</button>
-                    <button class="profile-tab" data-tab="analytics">الإحصائيات</button>
-                    <button class="profile-tab" data-tab="links">روابطي</button>
-                </div>
-
-                <div class="profile-tab-content" id="profileTabContent">
-                    <!-- Tab content loaded dynamically -->
-                </div>
-            </div>
-        `;
-
-        // Bind tab clicks
-        page.querySelectorAll('.profile-tab').forEach(tab => {
+        document.querySelectorAll('.profile-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                page.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 this.loadProfileTab(tab.dataset.tab);
             });
         });
 
-        return page;
+        await this.loadProfileData();
     }
 
     /**
@@ -769,15 +682,17 @@ class MstkhbyApp {
                 `;
                 break;
 
-            case 'links':
+            case 'links': {
+                const userData = await window.authService?.getCurrentUserData();
+                const profileLink = `mstkhby.com/${userData?.username || ''}`;
                 contentEl.innerHTML = `
                     <div class="settings-section">
                         <div class="settings-item">
                             <div class="settings-label">
                                 <strong>رابطك الرئيسي</strong>
-                                <span>mstkhby.com/${await window.authService?.getCurrentUserData()?.then(u => u?.username)}</span>
+                                <span>${profileLink}</span>
                             </div>
-                            <button class="btn btn-ghost btn-sm" onclick="window.uiManager?.copyToClipboard('mstkhby.com/${this.currentUser?.uid}')">نسخ</button>
+                            <button class="btn btn-ghost btn-sm" onclick="window.uiManager?.copyToClipboard('${profileLink}')">نسخ</button>
                         </div>
                         <div style="padding: 20px; text-align: center; color: var(--text-tertiary);">
                             روابط إضافية متاحة لخطط البريميوم
@@ -785,7 +700,190 @@ class MstkhbyApp {
                     </div>
                 `;
                 break;
+            }
+
+            case 'settings':
+                contentEl.innerHTML = `
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <span>🔒 الخصوصية</span>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong>مستوى الحماية</strong>
+                                <span>تحكم في صرامة فحص الرسائل</span>
+                            </div>
+                            <select id="privacyLevelSelect">
+                                <option value="low">🟢 منخفض</option>
+                                <option value="medium">🟡 متوسط</option>
+                                <option value="high">🔴 صارم</option>
+                            </select>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong>الحذف التلقائي</strong>
+                                <span>احذف الرسائل المقروءة تلقائياً</span>
+                            </div>
+                            <div class="toggle-switch" id="autoDeleteToggle"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <span>🔔 الإشعارات</span>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong>إشعارات الدفع</strong>
+                                <span>استلم تنبيهات عند وصول رسائل جديدة</span>
+                            </div>
+                            <div class="toggle-switch" id="pushNotifToggle"></div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong>الإشعارات بالبريد</strong>
+                                <span>تلخيص يومي للرسائل الجديدة</span>
+                            </div>
+                            <div class="toggle-switch" id="emailNotifToggle"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <span>👤 الحساب</span>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong>تغيير كلمة المرور</strong>
+                                <span>سنرسل لك رابط إعادة تعيين على بريدك</span>
+                            </div>
+                            <button class="btn btn-outline btn-sm" id="changePasswordBtn">إرسال الرابط</button>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong>تصدير بياناتي</strong>
+                            </div>
+                            <button class="btn btn-outline btn-sm" id="exportDataBtn">تصدير</button>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong>تسجيل الخروج</strong>
+                            </div>
+                            <button class="btn btn-outline btn-sm" id="logoutBtn">خروج</button>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <strong style="color: var(--accent-red);">حذف الحساب</strong>
+                                <span>سيتم حذف جميع بياناتك نهائياً</span>
+                            </div>
+                            <button class="btn btn-danger btn-sm" id="deleteAccountBtn">حذف</button>
+                        </div>
+                    </div>
+                `;
+
+                await this.bindSettingsTab(contentEl);
+                break;
         }
+    }
+
+    /**
+     * Wire up the settings tab: prefill current values from the saved
+     * profile and bind every control to a real action.
+     */
+    async bindSettingsTab(contentEl) {
+        const userData = await window.authService?.getCurrentUserData();
+        const settings = userData?.settings || {};
+
+        const privacySelect = contentEl.querySelector('#privacyLevelSelect');
+        if (privacySelect) {
+            privacySelect.value = settings.privacyLevel || 'medium';
+            privacySelect.addEventListener('change', async () => {
+                try {
+                    await window.authService?.updateProfile({ 'settings/privacyLevel': privacySelect.value });
+                    window.uiManager?.showToast('تم الحفظ', 'تم تحديث مستوى الحماية', 'success');
+                } catch (error) {
+                    window.uiManager?.showToast('خطأ', error.message, 'error');
+                }
+            });
+        }
+
+        const bindToggle = (id, settingKey) => {
+            const el = contentEl.querySelector(`#${id}`);
+            if (!el) return;
+            if (settings[settingKey]) el.classList.add('active');
+            el.addEventListener('click', async () => {
+                el.classList.toggle('active');
+                const value = el.classList.contains('active');
+                try {
+                    await window.authService?.updateProfile({ [`settings/${settingKey}`]: value });
+                } catch (error) {
+                    el.classList.toggle('active'); // revert on failure
+                    window.uiManager?.showToast('خطأ', error.message, 'error');
+                }
+            });
+        };
+        bindToggle('autoDeleteToggle', 'autoDeleteReadMessages');
+        bindToggle('pushNotifToggle', 'notifications/push');
+        bindToggle('emailNotifToggle', 'notifications/email');
+
+        contentEl.querySelector('#changePasswordBtn')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            try {
+                btn.disabled = true;
+                await window.authService?.resetPassword(this.currentUser.email);
+                window.uiManager?.showToast('تم الإرسال', 'تفقّد بريدك الإلكتروني لإعادة تعيين كلمة المرور', 'success');
+            } catch (error) {
+                window.uiManager?.showToast('خطأ', error.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        contentEl.querySelector('#exportDataBtn')?.addEventListener('click', async () => {
+            try {
+                const data = await window.authService?.getCurrentUserData();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mstkhby-my-data.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                window.uiManager?.showToast('خطأ', error.message, 'error');
+            }
+        });
+
+        contentEl.querySelector('#logoutBtn')?.addEventListener('click', async () => {
+            const confirmed = await window.uiManager?.showConfirm('تسجيل الخروج', 'هل تريد تسجيل الخروج من حسابك؟', 'خروج');
+            if (!confirmed) return;
+            try {
+                await window.authService?.logout();
+                window.location.href = 'index.html';
+            } catch (error) {
+                window.uiManager?.showToast('خطأ', error.message, 'error');
+            }
+        });
+
+        contentEl.querySelector('#deleteAccountBtn')?.addEventListener('click', async () => {
+            const confirmed = await window.uiManager?.showConfirm(
+                'حذف الحساب',
+                'هل أنت متأكد؟ هذا الإجراء لا يمكن التراجع عنه.',
+                'نعم، احذف حسابي'
+            );
+            if (!confirmed) return;
+
+            const password = window.prompt('لتأكيد الحذف، ادخل كلمة المرور الخاصة بحسابك:');
+            if (!password) return;
+
+            try {
+                await window.authService?.deleteAccount(password);
+                window.uiManager?.showToast('تم الحذف', 'تم حذف حسابك بنجاح', 'success');
+                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+            } catch (error) {
+                window.uiManager?.showToast('خطأ', error.message, 'error');
+            }
+        });
     }
 
     /**
@@ -860,112 +958,6 @@ class MstkhbyApp {
         } catch (error) {
             console.error('Error loading public profile:', error);
         }
-    }
-
-    /**
-     * Show settings page
-     */
-    async showSettingsPage() {
-        if (!this.currentUser) {
-            window.uiManager?.openAuthModal(false);
-            return;
-        }
-
-        let settingsPage = document.getElementById('settings-page');
-        
-        if (!settingsPage) {
-            settingsPage = this.createSettingsPage();
-            document.body.appendChild(settingsPage);
-        }
-
-        this.hideDynamicPages();
-        settingsPage.classList.remove('hidden');
-        settingsPage.classList.add('page-enter');
-    }
-
-    /**
-     * Create settings page
-     */
-    createSettingsPage() {
-        const page = document.createElement('div');
-        page.id = 'settings-page';
-        page.className = 'dynamic-page hidden';
-        page.innerHTML = `
-            <div class="settings-container">
-                <h1 style="margin-bottom: 24px;">⚙️ الإعدادات</h1>
-
-                <div class="settings-section">
-                    <div class="settings-section-header">
-                        <span>🔒 الخصوصية</span>
-                    </div>
-                    <div class="settings-item">
-                        <div class="settings-label">
-                            <strong>مستوى الحماية</strong>
-                            <span>تحكم في صرامة فحص الرسائل</span>
-                        </div>
-                        <select onchange="console.log('Privacy level changed')">
-                            <option value="low">🟢 منخفض</option>
-                            <option value="medium" selected>🟡 متوسط</option>
-                            <option value="high">🔴 صارم</option>
-                        </select>
-                    </div>
-                    <div class="settings-item">
-                        <div class="settings-label">
-                            <strong>الحذف التلقائي</strong>
-                            <span>احذف الرسائل المقروءة تلقائياً</span>
-                        </div>
-                        <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="settings-section-header">
-                        <span>🔔 الإشعارات</span>
-                    </div>
-                    <div class="settings-item">
-                        <div class="settings-label">
-                            <strong>إشعارات الدفع</strong>
-                            <span>استلم تنبيهات عند وصول رسائل جديدة</span>
-                        </div>
-                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
-                    </div>
-                    <div class="settings-item">
-                        <div class="settings-label">
-                            <strong>الإشعارات بالبريد</strong>
-                            <span>تلخيص يومي للرسائل الجديدة</span>
-                        </div>
-                        <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="settings-section-header">
-                        <span>👤 الحساب</span>
-                    </div>
-                    <div class="settings-item">
-                        <div class="settings-label">
-                            <strong>تغيير كلمة المرور</strong>
-                        </div>
-                        <button class="btn btn-outline btn-sm">تغيير</button>
-                    </div>
-                    <div class="settings-item">
-                        <div class="settings-label">
-                            <strong>تصدير بياناتي</strong>
-                        </div>
-                        <button class="btn btn-outline btn-sm">تصدير</button>
-                    </div>
-                    <div class="settings-item">
-                        <div class="settings-label">
-                            <strong style="color: var(--accent-red);">حذف الحساب</strong>
-                            <span>سيتم حذف جميع بياناتك نهائياً</span>
-                        </div>
-                        <button class="btn btn-danger btn-sm" onclick="window.uiManager?.showConfirm('حذف الحساب', 'هل أنت متأكد؟ هذا الإجراء لا يمكن التراجع عنه.', 'نعم، احذف حسابي')">حذف</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        return page;
     }
 
     /**

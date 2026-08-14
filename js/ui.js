@@ -96,7 +96,7 @@ class UIManager {
                         // .onclick from app.js's updateUIForAuthState(). The
                         // hero CTA buttons don't, so send them to the inbox.
                         if (btn.id === 'getStartedBtn' || btn.id === 'ctaSignupBtn') {
-                            window.location.hash = '/inbox';
+                            window.location.href = 'inbox.html';
                         }
                         return;
                     }
@@ -463,6 +463,15 @@ class UIManager {
         }
     }
 
+    // Where to send the user right after a successful login/signup —
+    // honors ?next=inbox|profile if that's how they got to the auth
+    // modal (e.g. redirected from a protected page), defaults to inbox.
+    getPostAuthDestination() {
+        const params = new URLSearchParams(window.location.search);
+        const next = params.get('next');
+        return next === 'profile' ? 'profile.html' : 'inbox.html';
+    }
+
     // Handle login form submission
     async handleGoogleSignIn(btn) {
         const originalHTML = btn.innerHTML;
@@ -481,8 +490,9 @@ class UIManager {
 
             this.closeModal(this.elements.authModal);
 
+            const destination = this.getPostAuthDestination();
             setTimeout(() => {
-                window.location.hash = '/inbox';
+                window.location.href = destination;
             }, 500);
 
         } catch (error) {
@@ -519,9 +529,9 @@ class UIManager {
 
             this.closeModal(this.elements.authModal);
             
-            // Redirect to inbox or profile
+            const destination = this.getPostAuthDestination();
             setTimeout(() => {
-                window.location.hash = '/inbox';
+                window.location.href = destination;
             }, 500);
 
         } catch (error) {

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الصندوق الوارد - مستخبي 📬</title>
+    <meta name="description" content="رسائلك السرية والمجهولة في مستخبي">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/premium.css">
+</head>
+<body data-page="inbox">
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="loader">
+            <div class="loader-icon">🤫</div>
+            <p class="loader-text">جاري التحميل...</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-icon">🤫</span>
+                <span class="logo-text">مستخبي</span>
+            </a>
+
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" class="nav-link">الرئيسية</a></li>
+                <li><a href="inbox.html" class="nav-link active">الصندوق الوارد</a></li>
+                <li><a href="profile.html" class="nav-link">حسابي</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <button class="btn btn-ghost" id="loginBtn">تسجيل الدخول</button>
+                <button class="btn btn-primary" id="signupBtn">ابدأ مجاناً</button>
+                <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+                    <span class="sun-icon">☀️</span>
+                    <span class="moon-icon">🌙</span>
+                </button>
+            </div>
+
+            <button class="mobile-toggle" id="mobileToggle" aria-label="القائمة">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Inbox Page Content -->
+    <main class="app-page">
+        <div class="inbox-container">
+            <div class="inbox-header">
+                <h1>📬 صندوق الوارد</h1>
+                <div class="inbox-filters">
+                    <button class="filter-btn active" data-filter="all">الكل</button>
+                    <button class="filter-btn" data-filter="unread">غير مقروءة</button>
+                    <button class="filter-btn" data-filter="media">وسائط</button>
+                </div>
+            </div>
+
+            <div class="messages-list" id="messagesList">
+                <div class="loading-skeleton">
+                    <div class="message-item skeleton" style="height: 100px; margin-bottom: 16px;"></div>
+                    <div class="message-item skeleton" style="height: 100px; margin-bottom: 16px;"></div>
+                    <div class="message-item skeleton" style="height: 100px; margin-bottom: 16px;"></div>
+                </div>
+            </div>
+
+            <!-- Message Detail View (hidden by default) -->
+            <div class="message-detail hidden" id="messageDetail">
+                <!-- Populated by openMessage() in app.js -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="footer-logo">
+                        <span>🤫</span>
+                        <span>مستخبي</span>
+                    </a>
+                    <p>منصة الرسائل السرية والأكثر خصوصية في العالم العربي</p>
+                </div>
+
+                <div class="footer-links">
+                    <h4>المنصة</h4>
+                    <ul>
+                        <li><a href="index.html">الرئيسية</a></li>
+                        <li><a href="inbox.html">الصندوق الوارد</a></li>
+                        <li><a href="profile.html">حسابي</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4>قانوني</h4>
+                    <ul>
+                        <li><a href="pages/privacy.html">سياسة الخصوصية</a></li>
+                        <li><a href="pages/terms.html">شروط الاستخدام</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 مستخبي (Mstkhby). جميع الحقوق محفوظة.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Auth Modal (only shown if the session expired mid-visit) -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal auth-modal">
+            <button class="modal-close" id="closeAuthModal">&times;</button>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">تسجيل الدخول</button>
+                <button class="auth-tab" data-tab="signup">حساب جديد</button>
+            </div>
+
+            <form class="auth-form" id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">البريد الإلكتروني</label>
+                    <input type="email" id="loginEmail" placeholder="example@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">كلمة المرور</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">تسجيل الدخول</button>
+                <div class="auth-divider"><span>أو</span></div>
+                <div class="social-auth">
+                    <button type="button" class="btn btn-social google-btn">Google</button>
+                </div>
+                <a href="#" class="forgot-password">نسيت كلمة المرور؟</a>
+            </form>
+
+            <form class="auth-form hidden" id="signupForm">
+                <div class="form-group">
+                    <label for="signupName">الاسم المعروض</label>
+                    <input type="text" id="signupName" placeholder="محمد أحمد" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupUsername">اسم المستخدم</label>
+                    <input type="text" id="signupUsername" placeholder="mohamed_123" required>
+                    <small class="form-hint">mstkhby.com/mohamed_123</small>
+                </div>
+                <div class="form-group">
+                    <label for="signupEmail">البريد الإلكتروني</label>
+                    <input type="email" id="signupEmail" placeholder="example@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">كلمة المرور</label>
+                    <input type="password" id="signupPassword" placeholder="••••••••" required>
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">إنشاء حساب</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/messages.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/verification.js"></script>
+    <script src="js/story-cards.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
