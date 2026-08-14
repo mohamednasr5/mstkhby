@@ -1,16 +1,20 @@
 /* Pages Common Styles - مستخبي */
 :root {
-    --primary-color: #6C63FF;
-    --primary-dark: #5A52D5;
-    --secondary-color: #FF6584;
-    --bg-dark: #0A0A1A;
-    --bg-card: #12122A;
-    --text-primary: #FFFFFF;
-    --text-secondary: #B8B8D1;
+    /* Aligned with the main site's brand palette (css/main.css:
+       --primary-500 / --accent-purple) instead of an unrelated
+       purple/pink scheme, so these info pages match the rest of
+       the site visually. */
+    --primary-color: #0ea5e9;
+    --primary-dark: #0284c7;
+    --secondary-color: #8b5cf6;
+    --bg-dark: #0f172a;
+    --bg-card: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
     --border-color: rgba(255,255,255,0.1);
-    --success-color: #00D26A;
-    --warning-color: #FFB800;
-    --error-color: #FF4757;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --error-color: #ef4444;
 }
 
 * {
@@ -299,7 +303,7 @@ body {
 .steps-list li {
     counter-increment: step-counter;
     position: relative;
-    padding: 20px 20px 20px 70px;
+    padding: 20px 70px 20px 20px;
     margin-bottom: 15px;
     background: var(--bg-card);
     border-radius: 12px;
@@ -410,8 +414,7 @@ body {
     }
     
     .steps-list li {
-        padding-right: 20px;
-        padding-right: 70px;
+        padding: 16px 60px 16px 16px;
     }
     
     .steps-list li::before {
