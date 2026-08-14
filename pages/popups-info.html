@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>النوافذ المنبثقة - مستخبي 🪟</title>
+    <meta name="description" content="دليل شامل للنوافذ المنبثقة والإشعارات في منصة مستخبي">
+    
+    <link rel="icon" type="image/svg+xml" href="../assets/icons/favicon.svg">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="page-nav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-logo">
+                <span class="logo-icon">🤫</span>
+                <span class="logo-text">مستخبي</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="../index.html">الرئيسية</a></li>
+                <li><a href="games.html">الألعاب</a></li>
+                <li><a href="terms.html">الشروط</a></li>
+                <li><a href="privacy.html">الخصوصية</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="page-content">
+        <!-- Page Header -->
+        <header class="page-header">
+            <h1>🪟 النوافذ المنبثقة والإشعارات</h1>
+            <p>كل ما تحتاج معرفته عن النوافذ المنبثقة (Popups) وكيفية إدارتها في مستخبي.</p>
+            <div class="last-updated">
+                <span>🕐</span>
+                <span>آخر تحديث: 12 أغسطس 2024</span>
+            </div>
+        </header>
+
+        <!-- Overview -->
+        <section class="content-section">
+            <h2><span class="icon">📱</span> نظرة عامة على النوافذ المنبثقة</h2>
+            <p>
+                تستخدم منصة مستخبي النوافذ المنبثقة (Popups) لتقديم معلومات مهمة، طلب الإذن، أو عرض محتوى تفاعلي. صُممت هذه النوافذ لتكون غير مزعجة ومفيدة، مع خيارات كاملة للتحكم فيها.
+            </p>
+            
+            <div class="info-box success">
+                <strong>✓ مبدأنا:</strong> نستخدم النوافذ فقط عندما تكون ضرورية ونفيد المستخدم
+            </div>
+        </section>
+
+        <!-- Types of Popups -->
+        <section class="content-section">
+            <h2><span class="icon">📋</span> أنواع النوافذ المنبثقة</h2>
+            
+            <div class="cards-grid">
+                <!-- Modal Popup -->
+                <div class="feature-card">
+                    <div class="card-icon">🔲</div>
+                    <h4>نافذة Modal</h4>
+                    <p>نافذة مركزية تغطي الشاشة - تستخدم للإجراءات المهمة مثل تسجيل الدخول أو التأكيدات</p>
+                </div>
+
+                <!-- Toast Notification -->
+                <div class="feature-card">
+                    <div class="card-icon">🍞</div>
+                    <h4>إشعار Toast</h4>
+                    <p>إشعار قصير يظهر أسفل/أعلى الشاشة - للتنبيهات السريعة مثل "تم الحفظ"</p>
+                </div>
+
+                <!-- Tooltip -->
+                <div class="feature-card">
+                    <div class="card-icon">💬</div>
+                    <h4>تلميح Tooltip</td>
+                    <p>نص صغير يظهر عند تمرير الماوس - لشرح الأيقونات والمصطلحات</p>
+                </div>
+
+                <!-- Alert Dialog -->
+                <div class="feature-card">
+                    <div class="card-icon">⚠️</div>
+                    <h4>نافذة تنبيه</h4>
+                    <p>للتحذيرات الهامة - تتطلب إجراء من المستخدم (موافق/إلغاء)</p>
+                </div>
+
+                <!-- Slide-up Panel -->
+                <div class="feature-card">
+                    <div class="card-icon">⬆️</div>
+                    <h4>لوحة منزلقة</td>
+                    <p>لوحة تظهر من الأسفل - شائعة في الجوال للقوائم والخيارات</p>
+                </div>
+
+                <!-- Push Notification -->
+                <div class="feature-card">
+                    <div class="card-icon">🔔</div>
+                    <h4>إشعار Push</td>
+                    <p>إشعار النظام - يظهر حتى عند إغلاق التطبيق</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- When We Use Popups -->
+        <section class="content-section">
+            <h2><span class="icon">🎯</span> متى نستخدم النوافذ؟</h2>
+            
+            <h3>الحالات المشروعة ✅</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>النوع</th>
+                        <th>الغرض</th>
+                        <th>المثال</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>🔐 المصادقة</td>
+                        <td>تسجيل الدخول/التسجيل</td>
+                        <td>نافذة تسجيل الدخول</td>
+                    </tr>
+                    <tr>
+                        <td>✅ التأكيد</td>
+                        <td>تأكيد إجراء مهم</td>
+                        <td>"هل تريد حذف هذه الرسالة؟"</td>
+                    </tr>
+                    <tr>
+                        <td>ℹ️ المعلومات</td>
+                        <td>عرض معلومات مهمة</td>
+                        <td>تحديثات الخدمة الجديدة</td>
+                    </tr>
+                    <tr>
+                        <td>⚙️ الإعدادات</td>
+                        <td>تعديل إعدادات سريعة</td>
+                        <td>اختيار اللغة أو الثيم</td>
+                    </tr>
+                    <tr>
+                        <td>🎁 العروض</td>
+                        <td>عروض خاصة (اختياري)</td>
+                        <td>خصم 50% على البريميوم</td>
+                    </tr>
+                    <tr>
+                        <td>📢 الإشعارات</td>
+                        <td>طلب إذن الإشعارات</td>
+                        <td>"هل تريد تلقي إشعارات؟"</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>ما نتجنبه ❌</h3>
+            <ul>
+                <li><strong>النوافذ التلقائية:</strong> نوافذ تفتح بدون فعل المستخدم</li>
+                <li><strong>الإعلانات المزعجة:</strong> نوافذ إعلانات تغطي المحتوى</li>
+                <li><strong>التكرار المفرط:</strong> نفس النافذة تظهر مراراً</li>
+                <li><strong>صعب الإغلاق:</strong> نوافذ بدون زر إغلاق واضح</li>
+                <li><strong>الخداع:</strong> أزرار مضللة (مثل "لا، أريد الاستمرار")</li>
+            </ul>
+        </section>
+
+        <!-- Managing Popups -->
+        <section class="content-section">
+            <h2><span class="icon">⚙️</span> إدارة النوافذ</h2>
+            
+            <h3>كيفية التحكم في النوافذ</h3>
+            
+            <ol class="steps-list">
+                <li>
+                    <strong>الإغلاق:</strong> اضغط X أو زر "إغلاق" أو اضغط خارج النافذة
+                </li>
+                <li>
+                    <strong>عدم الظهور مجدداً:</strong> اختر "لا تسألني مرة أخرى" إن وجد
+                </li>
+                <li>
+                    <strong>إعدادات المتصفح:</strong> حظر النوافذ من إعدادات المتصفح
+                </li>
+                <li>
+                    <strong>إعدادات مستخبي:</strong> تحكم مفصل من صفحة الإعدادات
+                </li>
+            </ol>
+
+            <h3>إعدادات النوافذ في مستخبي</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الإعداد</th>
+                        <th>الوصف</th>
+                        <th>الافتراضي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>إشعارات Push</td>
+                        <td>تلقي إشعارات النظام</td>
+                        <td>مفعّل (يُطلب الإذن)</td>
+                    </tr>
+                    <tr>
+                        <td>Toast Notifications</td>
+                        <td>الإشعارات داخل التطبيق</td>
+                        <td>مفعّل</td>
+                    </tr>
+                    <tr>
+                        <td>نوافذ الترحيب</td>
+                        <td>رسائل ترحيب للميزات الجديدة</td>
+                        <td>مفعّل</td>
+                    </tr>
+                    <tr>
+                        <td>العروض والترويج</td>
+                        <td>عروض وخصومات</td>
+                        <td>معطّل</td>
+                    </tr>
+                    <tr>
+                        <td>نوافذ المساعدة</td>
+                        <td>تلميحات وتعليمات</td>
+                        <td>مفعّل</td>
+                    </tr>
+                    <tr>
+                        <td>Survey/Feedback</td>
+                        <td>استبيانات رأي</td>
+                        <td>مفعّل (حد أقصى 1/شهر)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Permission Requests -->
+        <section class="content-section">
+            <h2><span class="icon">🔐</span> طلبات الإذن</h2>
+            
+            <p>
+                قد تطلب منصة مستخبي الأذونات التالية عبر نوافذ منبثقة:
+            </p>
+
+            <div class="cards-grid">
+                <div class="feature-card">
+                    <div class="card-icon">🔔</div>
+                    <h4>الإشعارات</h4>
+                    <p><strong>الغرض:</strong> إخطارك بالرسائل الجديدة<br><strong>ضروري:</strong> لا (لكنه مفيد جداً)</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">📍</div>
+                    <h4>الموقع</h4>
+                    <p><strong>الغرض:</strong> تقديم محتوى محلي<br><strong>ضروري:</strong> لا (اختياري تماماً)</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">📷</div>
+                    <h4>الكاميرا</h4>
+                    <p><strong>الغرض:</strong> التقاط صور وفيديو<br><strong>ضروري:</strong> عند استخدام الكاميرا فقط</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🎤</div>
+                    <h4>الميكروفون</h4>
+                    <p><strong>الغرض:</strong> تسجيل رسائل صوتية<br><strong>ضروري:</strong> عند التسجيل الصوتي فقط</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🖼️</div>
+                    <h4>المعرض</h4>
+                    <p><strong>الغرض:</strong> اختيار صور للرفع<br><strong>ضروري:</strong> عند رفع الصور فقط</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">💾</div>
+                    <h4>التخزين</h4>
+                    <p><strong>الغرض:</strong> حفظ الملفات مؤقتاً<br><strong>ضروري:</strong> للأداء الأمثل</p>
+                </div>
+            </div>
+
+            <div class="info-box warning">
+                <strong>⚠️ خصوصيتك:</strong> يمكنك رفض أي إذن والاستمرار في استخدام المنصة - بعض الميزات فقط ستكون محدودة
+            </div>
+        </section>
+
+        <!-- Popup Best Practices for Us -->
+        <section class="content-section">
+            <h2><span class="icon">📏</span> معاييرنا للنوافذ</h2>
+            
+            <p>
+                نلتزم بالمعايير التالية عند تصميم وعرض النوافذ:
+            </p>
+
+            <h3>معايير التصميم</h3>
+            <ul>
+                <li><strong>وضوح الغرض:</strong> كل نافذة لها سبب واضح ومفيد</li>
+                <li><strong>سهولة الإغلاق:</strong> زر إغلاق واضح + إغلاق بالنقر خارجها</li>
+                <li><strong>التوقيت المناسب:</strong> لا تظهر أثناء الكتابة أو القراءة</li>
+                <li><strong>الحد الأدنى:</strong> لا نعرض أكثر من نافذة واحدة في نفس الوقت</li>
+                <li><strong>التكرار المعقول:</strong> نفس الرسالة لا تظهر أكثر من مرة يومياً</li>
+            </ul>
+
+            <h3>معايير الأداء</h3>
+            <ul>
+                <li><strong>التحميل السريع:</strong> النوافذ خفيفة ولا تبطئ التطبيق</li>
+                <li><strong>لا تعيق التنقل:</strong> يمكن التنقل بين الصفحات مع وجود نافذة</li>
+                <li><strong>التجاوب:</strong> تعمل بشكل مثالي على جميع أحجام الشاشات</li>
+                <li><strong>إمكانية الوصول:</strong> متوافقة مع قارئات الشاشة</li>
+            </ul>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section class="content-section">
+            <h2><span class="icon">🔧</span> استكشاف الأخطاء</h2>
+            
+            <h3>مشاكل شائعة وحلولها</h3>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>المشكلة</th>
+                        <th>السبب المحتمل</th>
+                        <th>الحل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>لا تظهر الإشعارات</td>
+                        <td>إذن الإشعارات معطّل</td>
+                        <td>فعّله من إعدادات المتصفح/الهاتف</td>
+                    </tr>
+                    <tr>
+                        <td>نافذة عالقة لا تغلق</td>
+                        <td>خطأ في JavaScript</td>
+                        <td>حدث الصفحة (F5)</td>
+                    </tr>
+                    <tr>
+                        <td>نوافذ كثيرة مزعجة</td>
+                        <td>إعدادات افتراضية</td>
+                        <td>عطّل من الإعدادات</td>
+                    </tr>
+                    <tr>
+                        <td>نافذة تظهر باستمرار</td>
+                        <td>لم يتم حفظ التفضيل</td>
+                        <td>امسح الكوكيز وأعد المحاولة</td>
+                    </tr>
+                    <tr>
+                        <td>لا يمكن رفع الصور</td>
+                        <td>إذن المعرض مرفوض</td>
+                        <td>سمح بالإذن من إعدادات الموقع</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Feedback -->
+        <section class="content-section">
+            <h2><span class="icon">💭</span> شارك رأيك</h2>
+            
+            <p>
+                نسعى دائماً لتحسين تجربة المستخدم. إذا كانت لديك ملاحظات حول النوافذ المنبثقة:
+            </p>
+            <ul>
+                <li><strong>كثيرة جداً؟</strong> أخبرنا - قد نخفض عددها</li>
+                <li><strong>مزعجة؟</strong> صف الموقف - سنصلحه</li>
+                <li><strong>مفقودة؟</strong> اقترح نافذة جديدة مفيدة</li>
+                <li><strong>تصميم سيء؟</strong> شارك اقتراحاتك للتحسين</li>
+            </ul>
+
+            <div class="info-box success">
+                <strong>📧 تواصل معنا:</strong> feedback@mstkhby.com - نقرأ كل رسالة!
+            </div>
+        </section>
+
+        <!-- Back to Home -->
+        <div style="text-align: center;">
+            <a href="../index.html" class="back-home-btn">
+                <span>→</span>
+                <span>العودة للرئيسية</span>
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>روابط سريعة</h4>
+                <ul>
+                    <li><a href="../index.html">الرئيسية</a></li>
+                    <li><a href="games.html">منصة الألعاب</a></li>
+                    <li><a href="terms.html">شروط الاستخدام</a></li>
+                    <li><a href="privacy.html">سياسة الخصوصية</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>المعلومات</h4>
+                <ul>
+                    <li><a href="messages-info.html">الرسائل</a></li>
+                    <li><a href="files-info.html">الملفات</a></li>
+                    <li><a href="comments-info.html">التعليقات</a></li>
+                    <li><a href="dmca.html">DMCA</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>التقني</h4>
+                <ul>
+                    <li><a href="api-docs.html">API</a></li>
+                    <li><a href="social-info.html">التفاعل الاجتماعي</a></li>
+                    <li><a href="popups-info.html">النوافذ المنبثقة</a></li>
+                    <li><a href="deletion-status.html">حالة الحذف</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024 مستخبي (Mstkhby) - جميع الحقوق محفوظة</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معلومات الملفات - مستخبي 📁</title>
+    <meta name="description" content="دليل شامل لنظام رفع وتخزين الملفات والمرفقات في مستخبي">
+    
+    <link rel="icon" type="image/svg+xml" href="../assets/icons/favicon.svg">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="page-nav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-logo">
+                <span class="logo-icon">🤫</span>
+                <span class="logo-text">مستخبي</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="../index.html">الرئيسية</a></li>
+                <li><a href="games.html">الألعاب</a></li>
+                <li><a href="terms.html">الشروط</a></li>
+                <li><a href="privacy.html">الخصوصية</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="page-content">
+        <!-- Page Header -->
+        <header class="page-header">
+            <h1>📁 نظام الملفات والمرفقات</h1>
+            <p>كل ما تحتاج معرفته عن رفع الملفات وتخزينها ومشاركتها عبر منصة مستخبي.</p>
+            <div class="last-updated">
+                <span>🕐</span>
+                <span>آخر تحديث: 5 أغسطس 2024</span>
+            </div>
+        </header>
+
+        <!-- Overview -->
+        <section class="content-section">
+            <h2><span class="icon">📂</span> نظرة عامة على الملفات</h2>
+            <p>
+                يدعم مستخبي رفع ومشاركة أنواع متعددة من الملفات كرفقات للرسائل أو كمحتوى مستقل. نستخدم بنية تحتية سحابية متقدمة (Cloudflare R2) لضمان سرعة التحميل والأمان العالي.
+            </p>
+            
+            <div class="info-box success">
+                <strong>✓ الأمان:</strong> جميع الملفات مشفرة أثناء النقل (TLS) وعند التخزين (AES-256)
+            </div>
+        </section>
+
+        <!-- Supported File Types -->
+        <section class="content-section">
+            <h2><span class="icon">📋</span> أنواع الملفات المدعومة</h2>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>نوع الملف</th>
+                        <th>الامتدادات</th>
+                        <td>الحجم الأقصى (مجاني)</td>
+                        <td>الحجم الأقصى (بريميوم)</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>📷 الصور</strong></td>
+                        <td>JPG, PNG, GIF, WEBP, HEIC</td>
+                        <td>5 MB</td>
+                        <td>25 MB</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🎵 الصوت</strong></td>
+                        <td>MP3, M4A, WAV, OGG</td>
+                        <td>5 MB</td>
+                        <td>20 MB</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🎬 الفيديو</strong></td>
+                        <td>MP4, MOV, WEBM</td>
+                        <td>❌ غير متاح</td>
+                        <td>50 MB</td>
+                    </tr>
+                    <tr>
+                        <td><strong>📄 المستندات</strong></td>
+                        <td>PDF, DOC, TXT</td>
+                        <td>2 MB</td>
+                        <td>10 MB</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box warning">
+                <strong>⚠️ ملاحظة:</strong> الملفات التي تحتوي على برامج تنفيذية (.exe, .scr) أو سكربتات ممنوعة تماماً لأسباب أمنية
+            </div>
+        </section>
+
+        <!-- Upload Process -->
+        <section class="content-section">
+            <h2><span class="icon">⬆️</span> عملية رفع الملفات</h2>
+            
+            <ol class="steps-list">
+                <li>
+                    <strong>اختر الملف:</strong> اضغط على أيقونة المرفق أو اسحب وأفلت
+                </li>
+                <li>
+                    <strong>الفحص الأولي:</strong> يُفحص الملف للتأكد من النوع والحجم المسموح
+                </li>
+                <li>
+                    <strong>المعالجة:</strong> ضغط تلقائي (للصور)، إنشاء مصغرات، فحص بالمحتوى
+                </li>
+                <li>
+                    <strong>الرفع:</strong> إرسال مشفر إلى خوادمنا السحابية
+                </li>
+                <li>
+                    <strong>التأكيد:</strong> استلام رابط الملف وإضافته للرسالة
+                </li>
+            </ol>
+
+            <h3>سرعة الرفع المتوقعة</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>حجم الملف</th>
+                        <th>سرعة الإنترنت 10 Mbps</th>
+                        <th>سرعة الإنترنت 100 Mbps</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1 MB</td>
+                        <td>~1 ثانية</td>
+                        <td>أقل من ثانية</td>
+                    </tr>
+                    <tr>
+                        <td>5 MB</td>
+                        <td>~4 ثوانٍ</td>
+                        <td>~0.5 ثانية</td>
+                    </tr>
+                    <tr>
+                        <td>25 MB</td>
+                        <td>~20 ثانية</td>
+                        <td>~2 ثانية</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Image Processing -->
+        <section class="content-section">
+            <h2><span class="icon">🖼️</span> معالجة الصور</h2>
+            
+            <p>
+                عند رفع صورة، تمر بعدة مراحل معالجة تلقائية:
+            </p>
+
+            <h3>الضغط الذكي</h3>
+            <ul>
+                <li><strong>تقليل الحجم:</strong> ضغط بدون فقدان واضح في الجودة (80-90%)</li>
+                <li><strong>تحسين الألوان:</strong> تعديل تلقائي للسطوع والتباين</li>
+                <li><strong>إزالة البيانات الوصفية:</strong> حذف EXIF data (الموقع، الكاميرا...)</li>
+            </ul>
+
+            <h3>إنشاء المصغرات</h3>
+            <ul>
+                <li>مصغر صغير: 150×150 بكسل (لقائمة الرسائل)</li>
+                <li>مصغر متوسط: 500×500 بكسل (للمعاينة السريعة)</li>
+                <li>الأصلية: بحجمها الكامل (للعرض الكامل)</li>
+            </ul>
+
+            <h3>الفلاتر الاختيارية</h3>
+            <div class="cards-grid">
+                <div class="feature-card">
+                    <div class="card-icon">🌅</div>
+                    <h4>دافئ</h4>
+                    <p>نغمات دافئة وذهبية</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">❄️</div>
+                    <h4>بارد</h4>
+                    <p>نغمات زرقاء وباردة</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">⚫</div>
+                    <h4>أبيض وأسود</td>
+                    <p>تصميم كلاسيكي</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🎨</div>
+                    <h4>نابض بالحياة</h4>
+                    <p>تشبع ألوان عالي</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Storage & Security -->
+        <section class="content-section">
+            <h2><span class="icon">🔐</span> التخزين والأمان</h2>
+            
+            <h3>بنية التخزين</h3>
+            <p>
+                نستخدم Cloudflare R2 لتخزين جميع الملفات:
+            </p>
+            <ul>
+                <li><strong>توزيع عالمي:</strong> نسخ متعددة في مراكز بيانات حول العالم</li>
+                <li><strong>تشفير:</strong> AES-256 للتشفير عند الراحة</li>
+                <li><strong>CDN:</strong> تسليم سريع عبر شبكة Cloudflare العالمية</li>
+                <li><strong>نسخ احتياطي:</strong> نسخ يومية آلية</li>
+            </ul>
+
+            <h3>إجراءات الأمان</h3>
+            <div class="cards-grid">
+                <div class="feature-card">
+                    <div class="card-icon">🦠</div>
+                    <h4>فحص الفيروسات</h4>
+                    <p>جميع الملفات تُفحص قبل التخزين</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🔍</div>
+                    <h4>فحص المحتوى</h4>
+                    <p>AI يكتشف المحتوى غير اللائق</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🔗</div>
+                    <h4>روابط مؤقتة</h4>
+                    <p>روابط التحميل منتهية الصلاحية</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🚫</div>
+                    <h4>Hotlink Protection</h4>
+                    <p>منع استخدام الروابط خارج المنصة</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- File Limits by Plan -->
+        <section class="content-section">
+            <h2><span class="icon">📊</span> حدود التخزين حسب الخطة</h2>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الميزة</th>
+                        <th>مجاني</th>
+                        <th>بريميوم</th>
+                        <th>منشئ محتوى</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>مساحة التخزين الإجمالية</td>
+                        <td>100 MB</td>
+                        <td>2 GB</td>
+                        <td>20 GB</td>
+                    </tr>
+                    <tr>
+                        <td>عدد الملفات الشهرية</td>
+                        <td>50</td>
+                        <td>500</td>
+                        <td>غير محدود</td>
+                    </tr>
+                    <tr>
+                        <td>حجم الملف الواحد (صورة)</td>
+                        <td>5 MB</td>
+                        <td>15 MB</td>
+                        <td>25 MB</td>
+                    </tr>
+                    <tr>
+                        <td>حجم الملف الواحد (فيديو)</td>
+                        <td>❌</td>
+                        <td>30 MB</td>
+                        <td>100 MB</td>
+                    </tr>
+                    <tr>
+                        <td>مدة حفظ الملفات</td>
+                        <td>30 يوم</td>
+                        <td>سنة واحدة</td>
+                        <td>دائم</td>
+                    </tr>
+                    <tr>
+                        <td>جودة التحميل</td>
+                        <td>مُحسّنة</td>
+                        <td>عالية</td>
+                        <td>أصلية</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Downloading Files -->
+        <section class="content-section">
+            <h2><span class="icon">⬇️</span> تحميل الملفات</h2>
+            
+            <h3>كيفية التحميل</h3>
+            <ol>
+                <li>اضغط على الملف أو المرفق في الرسالة</li>
+                <li>سيفتح معاينة للملف (إن كان مدعوماً)</li>
+                <li>اضغط على زر "تحميل" لحفظه على جهازك</li>
+            </ol>
+
+            <h3>قيود التحميل</h3>
+            <ul>
+                <li><strong>الروابط مؤقتة:</strong> كل رابط تحميل صالح لـ 24 ساعة فقط</li>
+                <li><strong>حد التحميل:</strong> يمكن تحميل نفس الملف 5 مرات كحد أقصى</li>
+                <li><strong>التسجيل:</strong> جميع عمليات التحميل مسجلة للأمان</li>
+            </ul>
+
+            <div class="info-box warning">
+                <strong>⚠️ تحذير:</strong> لا تعيد مشاركة روابط التحميل مع أشخاص آخرين - قد لا تعمل وقد تؤدي لحظر حسابك
+            </div>
+        </section>
+
+        <!-- File Deletion -->
+        <section class="content-section">
+            <h2><span class="icon">🗑️</span> حذف الملفات</h2>
+            
+            <h3>طرق الحذف</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الطريقة</th>
+                        <th>الوصف</th>
+                        <th>المدة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>حذف يدوي</td>
+                        <td>تحذف الملف من رسالتك</td>
+                        <td>فوري</td>
+                    </tr>
+                    <tr>
+                        <td>حذف الرسالة</td>
+                        <td>يُحذف الملف مع حذف الرسالة</td>
+                        <td>فوري</td>
+                    </tr>
+                    <tr>
+                        <td>حذف تلقائي</td>
+                        <td>بعد انتهاء فترة الاحتفاظ</td>
+                        <td>حسب الخطة</td>
+                    </tr>
+                    <tr>
+                        <td>حذف الحساب</td>
+                        <td>جميع ملفاتك تُحذف</td>
+                        <td>30 يوم ثم نهائي</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>الحذف الآمن</h3>
+            <p>
+                عند حذف ملف:
+            </p>
+            <ul>
+                <li>يُحذف فوراً من قاعدة البيانات</li>
+                <li>يُحذف من التخزين السحابي خلال 24 ساعة</li>
+                <li>تُبطل جميع روابط التحميل السابقة</li>
+                <li>يُسجل الحذف في سجل المراجعة</li>
+            </ul>
+
+            <div class="info-box error">
+                <strong>⛔ نهائي:</strong> الملفات المحذوفة لا يمكن استرجاعها أبداً - تأكد قبل الحذف!
+            </div>
+        </section>
+
+        <!-- Best Practices -->
+        <section class="content-section">
+            <h2><span class="icon">💡</span> أفضل الممارسات</h2>
+            
+            <div class="cards-grid">
+                <div class="feature-card">
+                    <div class="card-icon">✂️</div>
+                    <h4>قص قبل الرفع</h4>
+                    <p>قص الصور لتقليل الحجم وتسريع الرفع</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🏷️</div>
+                    <h4>سمِ الملفات</h4>
+                    <p>استخدم أسماء وصفية للملفات</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">📱</div>
+                    <h4> otimize للجوال</h4>
+                    <p>استخدم صيغ WEBP للحجم الأصغر</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🔒</div>
+                    <h4>خصوصية الصور</h4>
+                    <p>أزل GPS/EXIF قبل الرفع يدوياً</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Back to Home -->
+        <div style="text-align: center;">
+            <a href="../index.html" class="back-home-btn">
+                <span>→</span>
+                <span>العودة للرئيسية</span>
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>روابط سريعة</h4>
+                <ul>
+                    <li><a href="../index.html">الرئيسية</a></li>
+                    <li><a href="games.html">منصة الألعاب</a></li>
+                    <li><a href="terms.html">شروط الاستخدام</a></li>
+                    <li><a href="privacy.html">سياسة الخصوصية</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>المعلومات</h4>
+                <ul>
+                    <li><a href="messages-info.html">الرسائل</a></li>
+                    <li><a href="files-info.html">الملفات</a></li>
+                    <li><a href="comments-info.html">التعليقات</a></li>
+                    <li><a href="dmca.html">DMCA</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>التقني</h4>
+                <ul>
+                    <li><a href="api-docs.html">API</a></li>
+                    <li><a href="social-info.html">التفاعل الاجتماعي</a></li>
+                    <li><a href="popups-info.html">النوافذ المنبثقة</a></li>
+                    <li><a href="deletion-status.html">حالة الحذف</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024 مستخبي (Mstkhby) - جميع الحقوق محفوظة</p>
+        </div>
+    </footer>
+</body>
+</html>

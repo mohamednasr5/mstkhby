@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>توثيق API - مستخبي 🔌</title>
+    <meta name="description" content>التوثيق التقني الكامل لواجهة برمجة التطبيقات (API) لمنصة مستخبي">
+    
+    <link rel="icon" type="image/svg+xml" href="../assets/icons/favicon.svg">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="page-nav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-logo">
+                <span class="logo-icon">🤫</span>
+                <span class="logo-text">مستخبي</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="../index.html">الرئيسية</a></li>
+                <li><a href="games.html">الألعاب</a></li>
+                <li><a href="terms.html">الشروط</a></li>
+                <li><a href="privacy.html">الخصوصية</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="page-content">
+        <!-- Page Header -->
+        <header class="page-header">
+            <h1>🔌 واجهة برمجة التطبيقات (API)</h1>
+            <p>التوثيق التقني الكامل للمطورين لبناء تطبيقات مبنية على منصة مستخبي.</p>
+            <div class="last-updated">
+                <span>🕐</span>
+                <span>آخر تحديث: 20 أغسطس 2024 | الإصدار: 2.0.0</span>
+            </div>
+        </header>
+
+        <!-- Overview -->
+        <section class="content-section">
+            <h2><span class="icon">🚀</span> نظرة عامة على API</h2>
+            <p>
+                توفر منصة مستخبي واجهة برمجة تطبيقات (RESTful API) قوية تتيح للمطورين:
+            </p>
+            <ul>
+                <li><strong>إرسال واستقبال الرسائل</strong> برمجياً</li>
+                <li><strong>إدارة الحسابات والمستخدمين</strong></li>
+                <li><strong>جلب التحليلات والإحصائيات</strong></li>
+                <li><strong>دمج مستخبي في تطبيقاتك</strong></li>
+                <li><strong>أتمتة العمليات</strong> المتكررة</li>
+            </ul>
+
+            <div class="info-box success">
+                <strong>✓ Base URL:</strong> <code>https://api.mstkhby.com/v2</code>
+            </div>
+
+            <div class="info-box warning">
+                <strong>⚠️ مطلوب:</strong> API متاح فقط لمشتركي خطة "منشئ محتوى" وما فوق
+            </div>
+        </section>
+
+        <!-- Authentication -->
+        <section class="content-section">
+            <h2><span class="icon">🔐</span> المصادقة والتفويض</h2>
+            
+            <h3>الحصول على API Key</h3>
+            <ol class="steps-list">
+                <li>
+                    <strong>اشترك في خطة منشئ محتوى:</strong> أو أعلى
+                </li>
+                <li>
+                    <strong>اذهب للإعدادات:</strong> الإعدادات ← المطورون
+                </li>
+                <li>
+                    <strong>أنشئ API Key:</strong> اضغط "إنشاء مفتاح جديد"
+                </li>
+                <li>
+                    <strong>حدد الصلاحيات:</strong> اختر النطاقات المطلوبة (Scopes)
+                </li>
+                <li>
+                    <strong>احفظ المفتاح:</strong> انسخه فوراً - لن يظهر مجدداً!
+                </li>
+            </ol>
+
+            <h3>طرق المصادقة</h3>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الطريقة</th>
+                        <th>الرأس (Header)</th>
+                        <th>الاستخدام</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>API Key</td>
+                        <td><code>X-API-Key: your_key_here</code></td>
+                        <td>بسيط، للتطبيقات الخادمية</td>
+                    </tr>
+                    <tr>
+                        <td>Bearer Token (JWT)</td>
+                        <td><code>Authorization: Bearer jwt_token</code></td>
+                        <td>للمستخدمين النهائيين</td>
+                    </tr>
+                    <tr>
+                        <td>OAuth 2.0</td>
+                        <td><code>Authorization: Bearer access_token</code></td>
+                        <td>لتطبيقات الطرف الثالث</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>مثال على الطلب</h3>
+            <div class="code-block">
+<code>GET /v2/me/messages HTTP/1.1
+Host: api.mstkhby.com
+X-API-Key: mstkhby_live_abc123xyz
+Content-Type: application/json
+Accept: application/json</code>
+            </div>
+        </section>
+
+        <!-- Rate Limiting -->
+        <section class="content-section">
+            <h2><span class="icon">⏱️</span> حدود الطلب (Rate Limiting)</h2>
+            
+            <p>
+                لتمنع إساءة الاستخدام وتضمن استقرار الخدمة، نطبق حدوداً على الطلبات:
+            </p>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الخطة</th>
+                        <th>الحد اليومي</th>
+                        <th>الحد بالدقيقة</th>
+                        <th>الحد بالثانية</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>بريميوم</td>
+                        <td>10,000</td>
+                        <td>100</td>
+                        <td>10</td>
+                    </tr>
+                    <tr>
+                        <td>منشئ محتوى</td>
+                        <td>100,000</td>
+                        <td>500</td>
+                        <td>50</td>
+                    </tr>
+                    <tr>
+                        <td>Enterprise</td>
+                        <td>غير محدود</td>
+                        <td>1,000</td>
+                        <td>100</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>رؤوس الاستجابة</h3>
+            <div class="code-block">
+<code>X-RateLimit-Limit: 500
+X-RateLimit-Remaining: 498
+X-RateLimit-Reset: 1692345600
+
+// عند تجاوز الحد:
+HTTP/1.1 429 Too Many Requests
+{
+  "error": "Rate limit exceeded",
+  "retry_after": 60
+}</code>
+            </div>
+        </section>
+
+        <!-- Endpoints -->
+        <section class="content-section">
+            <h2><span class="icon">🔗</span> نقاط النهاية (Endpoints)</h2>
+            
+            <h3>المصادقة (Authentication)</h3>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الطريقة</th>
+                        <th>المسار</th>
+                        <th>الوصف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code style="color: var(--success-color);">POST</code></td>
+                        <td>/auth/register</td>
+                        <td>تسجيل حساب جديد</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--success-color);">POST</code></td>
+                        <td>/auth/login</td>
+                        <td>تسجيل الدخول</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--success-color);">POST</code></td>
+                        <td>/auth/refresh</td>
+                        <td>تجديد Token</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--primary-color);">POST</code></td>
+                        <td>/auth/logout</td>
+                        <td>تسجيل الخروج</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/auth/me</td>
+                        <td>معلومات المستخدم الحالي</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>الرسائل (Messages)</h3>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الطريقة</th>
+                        <th>المسار</th>
+                        <th>الوصف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code style="color: var(--success-color);">POST</code></td>
+                        <td>/messages/send</td>
+                        <td>إرسال رسالة جديدة</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/messages/inbox</td>
+                        <td>صندوق الوارد</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/messages/:id</td>
+                        <td>تفاصيل رسالة</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--primary-color);">DELETE</code></td>
+                        <td>/messages/:id</td>
+                        <td>حذف رسالة</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--success-color);">POST</code></td>
+                        <td>/messages/:id/react</td>
+                        <td>تفاعل مع رسالة</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--success-color);">POST</code></td>
+                        <td>/messages/:id/reply</td>
+                        <td>رد على رسالة</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>المستخدمون (Users)</h3>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الطريقة</th>
+                        <th>المسار</th>
+                        <th>الوصف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/users/:username</td>
+                        <td>ملف مستخدم</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--primary-color);">PATCH</code></td>
+                        <td>/users/me</td>
+                        <td>تحديث ملفي</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--success-color);">POST</code></td>
+                        <td>/users/me/follow</td>
+                        <td>متابعة مستخدم</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--primary-color);">DELETE</code></td>
+                        <td>/users/me/follow/:id</td>
+                        <td>إلغاء المتابعة</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>التحليلات (Analytics)</h3>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الطريقة</th>
+                        <th>المسار</th>
+                        <th>الوصف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/analytics/overview</td>
+                        <td>نظرة عامة</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/analytics/messages</td>
+                        <td>إحصائيات الرسائل</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/analytics/growth</td>
+                        <td>نمو المتابعين</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--secondary-color);">GET</code></td>
+                        <td>/analytics/export</td>
+                        <td>تصدير البيانات</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Example Requests -->
+        <section class="content-section">
+            <h2><span class="icon">💻</span> أمثلة على الطلبات</h2>
+            
+            <h3>إرسال رسالة</h3>
+            <div class="code-block">
+<code>POST /v2/messages/send HTTP/1.1
+Host: api.mstkhby.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+Content-Type: application/json
+
+{
+  "recipient": "ahmed_alii",
+  "content": "مرحباً! كيف حالك؟",
+  "privacy_level": "anonymous",
+  "self_destruct": {
+    "type": "after_read",
+    "views": 1
+  },
+  "allow_replies": true
+}
+
+// Response 201 Created
+{
+  "id": "msg_abc123",
+  "status": "sent",
+  "created_at": "2024-08-20T10:30:00Z",
+  "self_destructs_at": null
+}</code>
+            </div>
+
+            <h3>جلب صندوق الوارد</h3>
+            <div class="code-block">
+<code>GET /v2/messages/inbox?page=1&limit=20&status=unread HTTP/1.1
+Host: api.mstkhby.com
+X-API-Key: mstkhby_live_abc123
+
+// Response 200 OK
+{
+  "data": [
+    {
+      "id": "msg_xyz789",
+      "sender": {
+        "anonymous": true,
+        "alias": null
+      },
+      "content": "رسالة تجريبية",
+      "read": false,
+      "created_at": "2024-08-20T09:15:00Z",
+      "reactions": {"❤️": 5}
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "pages": 3
+  }
+}</code>
+            </div>
+
+            <h3>الحصول على التحليلات</h3>
+            <div class="code-block">
+<code>GET /v2/analytics/overview?period=30d HTTP/1.1
+Host: api.mstkhby.com
+X-API-Key: mstkhby_live_abc123
+
+// Response 200 OK
+{
+  "period": "30d",
+  "messages_received": 1250,
+  "messages_sent": 340,
+  "new_followers": 89,
+  "total_reactions": 5670,
+  "top_content": [...],
+  "engagement_rate": 12.5
+}</code>
+            </div>
+        </section>
+
+        <!-- Error Handling -->
+        <section class="content-section">
+            <h2><span class="icon">⚠️</span> معالجة الأخطاء</h2>
+            
+            <p>
+                جميع الأخطاء تُرجع بتنسيق JSON موحد:
+            </p>
+
+            <div class="code-block">
+<code>{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "وصف الخطأ بالعربية",
+    "message_en": "Error description in English",
+    "details": {...},           // اختياري
+    "documentation_url": "https://docs.mstkhby.com/errors/ERROR_CODE"
+  }
+}</code>
+            </div>
+
+            <h3>رموز الأخطاء الشائعة</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الكود</th>
+                        <th>HTTP Status</th>
+                        <th>الوصف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>AUTH_INVALID</code></td>
+                        <td>401</td>
+                        <td>مفتاح API أو Token غير صالح</td>
+                    </tr>
+                    <tr>
+                        <td><code>RATE_LIMITED</code></td>
+                        <td>429</td>
+                        <td>تجاوز حد الطلبات</td>
+                    </tr>
+                    <tr>
+                        <td><code>NOT_FOUND</code></td>
+                        <td>404</td>
+                        <td>المورد غير موجود</td>
+                    </tr>
+                    <tr>
+                        <td><code>VALIDATION_ERROR</code></td>
+                        <td>422</td>
+                        <td>بيانات غير صحيحة</td>
+                    </tr>
+                    <tr>
+                        <td><code>FORBIDDEN</code></td>
+                        <td>403</td>
+                        <td>ليس لديك صلاحية</td>
+                    </tr>
+                    <tr>
+                        <td><code>SERVER_ERROR</code></td>
+                        <td>500</td>
+                        <td>خطأ داخلي في الخادم</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Webhooks -->
+        <section class="content-section">
+            <h2><span class="icon">🪝</span> Webhooks (الاستدعاءات)</h2>
+            
+            <p>
+                استقبل إشعارات فورية عند حدوث أحداث:
+            </p>
+
+            <h3>الأحداث المدعومة</h3>
+            <ul>
+                <li><code>message.received</code> - رسالة جديدة</li>
+                <li><code>message.read</code> - تمت قراءة الرسالة</li>
+                <li><code>follow.new</code> - متابع جديد</li>
+                <li><code>reaction.new</code> - تفاعل جديد</li>
+                <li><code>user.mentioned</code> - ذكر اسمك</li>
+            </ul>
+
+            <h3>إعداد Webhook</h3>
+            <div class="code-block">
+<code>POST /v2/webhooks HTTP/1.1
+Host: api.mstkhby.com
+Authorization: Bearer ...
+
+{
+  "url": "https://your-app.com/webhook",
+  "events": ["message.received", "follow.new"],
+  "secret": "your_webhook_secret"
+}
+
+// Response 201 Created
+{
+  "webhook_id": "wh_abc123",
+  "status": "active"
+}</code>
+            </div>
+
+            <h3>تنسيق Payload</h3>
+            <div class="code-block">
+<code>// POST to your webhook URL
+{
+  "event": "message.received",
+  "timestamp": "2024-08-20T10:30:00Z",
+  "data": {
+    "message_id": "msg_xyz",
+    "sender_anonymous": true,
+    "content_preview": "مرحباً..."
+  },
+  "signature": "sha256=..." // للتحقق
+}</code>
+            </div>
+        </section>
+
+        <!-- SDKs & Libraries -->
+        <section class="content-section">
+            <h2><span class="icon">📚</span> مكتبات SDK</h2>
+            
+            <p>
+                نوفر SDKs رسمية للغات والأطر الشائعة:
+            </p>
+
+            <div class="cards-grid">
+                <div class="feature-card">
+                    <div class="card-icon">🟨</div>
+                    <h4>JavaScript/Node.js</h4>
+                    <p><code>npm install @mstkhby/sdk</code></p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🐍</div>
+                    <h4>Python</h4>
+                    <p><code>pip install mstkhby-sdk</code></p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">💎</div>
+                    <h4>Ruby</h4>
+                    <p><code>gem install mstkhby</code></p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">☕</div>
+                    <h4>Java</h4>
+                    <p>Maven/Gradle package</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">📘</div>
+                    <h4>PHP</h4>
+                    <p><code>composer require mstkhby/sdk</code></p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-icon">🍎</div>
+                    <h4>Swift</h4>
+                    <p>SPM / CocoaPods</p>
+                </div>
+            </div>
+
+            <h3>مثال سريع (JavaScript)</h3>
+            <div class="code-block">
+<code>import { Mstkhby } from '@mstkhby/sdk';
+
+const client = new Mstkhby({
+  apiKey: 'mstkhby_live_abc123'
+});
+
+// إرسال رسالة
+const message = await client.messages.send({
+  recipient: 'username',
+  content: 'Hello! 👋',
+  privacyLevel: 'anonymous'
+});
+
+console.log(`Message sent: ${message.id}`);</code>
+            </div>
+        </section>
+
+        <!-- Testing -->
+        <section class="content-section">
+            <h2><span class="icon">🧪</span> بيئة الاختبار (Sandbox)</h2>
+            
+            <p>
+                قبل الانتقال للإنتاج، استخدم بيئة الاختبار:
+            </p>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Sandbox</th>
+                        <th>Production</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Base URL</strong></td>
+                        <td><code>https://api-sandbox.mstkhby.com/v2</code></td>
+                        <td><code>https://api.mstkhby.com/v2</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>API Key Prefix</strong></td>
+                        <td><code>mstkhby_test_</code></td>
+                        <td><code>mstkhby_live_</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>البيانات</strong></td>
+                        <td>وهمية (Fake)</td>
+                        <td>حقيقية</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rate Limits</strong></td>
+                        <td>مرنة جداً</td>
+                        <td>محدودة</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Webhooks</strong></td>
+                        <td>لا تعمل</td>
+                        <td>تعمل</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box warning">
+                <strong>⚠️ هام:</strong> لا تستخدم مفاتيح Sandbox في الإنتاج والعكس!
+            </div>
+        </section>
+
+        <!-- Support -->
+        <section class="content-section">
+            <h2><span class="icon">💬</span> الدعم الفني للمطورين</h2>
+            
+            <p>
+                تحتاج مساعدة؟ تواصل معنا:
+            </p>
+            <ul>
+                <li><strong>الوثائق الكاملة:</strong> <a href="https://docs.mstkhby.com">docs.mstkhby.com</a></li>
+                <li><strong>GitHub Discussions:</strong> أسئلة وأجوبة مجتمعية</li>
+                <li><strong>Discord:</strong> خادم المطورين للمساعدة المباشرة</li>
+                <li><strong>البريد:</strong> <code>api-support@mstkhby.com</code></li>
+                <li><strong>حالات الطوارئ:</strong> <code>api-emergency@mstkhby.com</code> (24/7)</li>
+            </ul>
+
+            <div class="info-box success">
+                <strong>✓ SLA:</strong> وقت استجابة 4 ساعات لأخطاء الإنتاج، 24 ساعة للاستفسارات العامة
+            </div>
+        </section>
+
+        <!-- Changelog -->
+        <section class="content-section">
+            <h2><span class="icon">📝</span> سجل التغييرات</h2>
+            
+            <h3>v2.0.0 - أغسطس 2024</h3>
+            <ul>
+                <li>✨ إصدار API v2 مع هيكلية جديدة</li>
+                <li>🔐 دعم OAuth 2.0 كامل</li>
+                <li>📊 نقاط نهاية تحليلات جديدة</li>
+                <li>🪝 نظام Webhooks في الوقت الفعلي</li>
+                <li>📚 SDKs رسمية لـ 6 لغات</li>
+                <li>🧪 بيئة Sandbox محسّنة</li>
+            </ul>
+
+            <h3>v1.x - مهمل (Deprecated)</h3>
+            <p>
+                الإصدار 1.x سيُوقف في يناير 2025. يرجى الترقية إلى v2.
+            </p>
+        </section>
+
+        <!-- Back to Home -->
+        <div style="text-align: center;">
+            <a href="../index.html" class="back-home-btn">
+                <span>→</span>
+                <span>العودة للرئيسية</span>
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>روابط سريعة</h4>
+                <ul>
+                    <li><a href="../index.html">الرئيسية</a></li>
+                    <li><a href="games.html">منصة الألعاب</a></li>
+                    <li><a href="terms.html">شروط الاستخدام</a></li>
+                    <li><a href="privacy.html">سياسة الخصوصية</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>المعلومات</h4>
+                <ul>
+                    <li><a href="messages-info.html">الرسائل</a></li>
+                    <li><a href="files-info.html">الملفات</a></li>
+                    <li><a href="comments-info.html">التعليقات</a></li>
+                    <li><a href="dmca.html">DMCA</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>التقني</h4>
+                <ul>
+                    <li><a href="api-docs.html">API</a></li>
+                    <li><a href="social-info.html">التفاعل الاجتماعي</a></li>
+                    <li><a href="popups-info.html">النوافذ المنبثقة</a></li>
+                    <li><a href="deletion-status.html">حالة الحذف</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2024 مستخبي (Mstkhby) - جميع الحقوق محفوظة</p>
+        </div>
+    </footer>
+</body>
+</html>

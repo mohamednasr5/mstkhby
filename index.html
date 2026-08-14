@@ -402,7 +402,7 @@
                         <li>❌ تحليلات</li>
                         <li>❌ روابط متعددة</li>
                     </ul>
-                    <button class="btn btn-outline btn-block">ابدأ مجاناً</button>
+                    <a href="payment.html?plan=free" class="btn btn-outline btn-block">ابدأ مجاناً</a>
                 </div>
 
                 <!-- Premium Plan -->
@@ -425,7 +425,7 @@
                         <li>✅ بدون إعلانات</li>
                         <li>✅ دعم أولوية</li>
                     </ul>
-                    <button class="btn btn-primary btn-block">ترقية الآن</button>
+                    <a href="payment.html?plan=premium" class="btn btn-primary btn-block">ترقية الآن</a>
                 </div>
 
                 <!-- Creator Plan -->
@@ -447,7 +447,7 @@
                         <li>✅ حماية Spam قوية</li>
                         <li>✅ مدير حساب خاص</li>
                     </ul>
-                    <button class="btn btn-outline btn-block">تواصل معنا</button>
+                    <a href="payment.html?plan=creator" class="btn btn-outline btn-block">تواصل معنا</a>
                 </div>
             </div>
         </div>
@@ -648,9 +648,9 @@
 
                         <div class="analytics-cta">
                             <p class="premium-note">🔒 هذه الميزات متاحة لمشتركي البريميوم وما فوق</p>
-                            <button class="btn btn-primary" onclick="window.stripeService?.createCheckoutSession('premium')">
+                            <a href="payment.html?plan=premium" class="btn btn-primary">
                                 ترقية لرؤية إحصائياتك
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -726,30 +726,32 @@
                 <div class="footer-links">
                     <h4>المنصة</h4>
                     <ul>
-                        <li><a href="#">الرئيسية</a></li>
+                        <li><a href="/">الرئيسية</a></li>
                         <li><a href="#">المميزات</a></li>
-                        <li><a href="#">الأسعار</a></li>
-                        <li><a href="#">API</a></li>
+                        <li><a href="#pricing">الأسعار</a></li>
+                        <li><a href="pages/api-docs.html">API</a></li>
+                        <li><a href="pages/games.html">منصة الألعاب</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-links">
                     <h4>الدعم</h4>
                     <ul>
-                        <li><a href="#">مركز المساعدة</a></li>
-                        <li><a href="#">تواصل معنا</a></li>
-                        <li><a href="#">الأسئلة الشائعة</a></li>
-                        <li><a href="#">حالة الخدمة</a></li>
+                        <li><a href="pages/messages-info.html">الرسائل</a></li>
+                        <li><a href="pages/files-info.html">الملفات</a></li>
+                        <li><a href="pages/comments-info.html">التعليقات</a></li>
+                        <li><a href="pages/popups-info.html">نوافذ منبثقة</a></li>
+                        <li><a href="pages/social-info.html">التفاعل الاجتماعي</a></li>
+                        <li><a href="pages/deletion-status.html">حالة الحذف</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-links">
                     <h4>قانوني</h4>
                     <ul>
-                        <li><a href="#">سياسة الخصوصية</a></li>
-                        <li><a href="#">شروط الاستخدام</a></li>
-                        <li><a href="#">سياسة الاحتفاظ بالبيانات</a></li>
-                        <li><a href="#">DMCA</a></li>
+                        <li><a href="pages/privacy.html">سياسة الخصوصية</a></li>
+                        <li><a href="pages/terms.html">شروط الاستخدام</a></li>
+                        <li><a href="pages/dmca.html">DMCA</a></li>
                     </ul>
                 </div>
             </div>
@@ -828,8 +830,8 @@
                 <button type="submit" class="btn btn-primary btn-block">إنشاء حساب</button>
                 <p class="terms-agreement">
                     بإنشاء حساب، أنت توافق على 
-                    <a href="#">شروط الاستخدام</a> و 
-                    <a href="#">سياسة الخصوصية</a>
+                    <a href="pages/terms.html">شروط الاستخدام</a> و 
+                    <a href="pages/privacy.html">سياسة الخصوصية</a>
                 </p>
             </form>
         </div>
@@ -948,7 +950,6 @@
     <script src="js/storage.js"></script>
     
     <!-- Premium Features Scripts -->
-    <script src="js/stripe.js"></script>
     <script src="js/verification.js"></script>
     <script src="js/story-cards.js"></script>
     <script src="js/analytics.js"></script>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طرق الدفع - مستخبي 💳</title>
+    <meta name="description" content="اختر طريقة الدفع المناسبة لك - إنستاباي، فودافون كاش، تحويل بنكي">
+    
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="pages/pages.css">
+    <link rel="stylesheet" href="css/payment-new.css">
+</head>
+<body class="payment-page-new">
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">🤫</span>
+                <span class="logo-text">مستخبي</span>
+            </a>
+            
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="/">الرئيسية</a></li>
+                <li><a href="/#pricing">الأسعار</a></li>
+                <li><a href="pages/games.html">الألعاب</a></li>
+                <li><a href="pages/api-docs.html">API</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <a href="#" class="btn btn-outline btn-sm" id="loginBtn">تسجيل الدخول</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="payment-main-new">
+        <!-- Header Section -->
+        <section class="payment-header-new">
+            <div class="container-new">
+                <div class="header-content-new">
+                    <span class="payment-badge-new">💳 طرق الدفع المتاحة</span>
+                    <h1>اختر طريقة الدفع المناسبة</h1>
+                    <p>نوفر لك多种 طرق دفع آمنة ومريحة. اختر ما يناسبك!</p>
+                    
+                    <!-- Selected Plan Info -->
+                    <div class="selected-plan-display" id="selectedPlanDisplay">
+                        <span class="plan-label">الخطة المختارة:</span>
+                        <span class="plan-name-display" id="planNameDisplay">بريميوم</span>
+                        <span class="plan-price-display" id="planPriceDisplay">29 ر.س / شهرياً</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payment Methods Section -->
+        <section class="payment-methods-section">
+            <div class="container-new">
+                <div class="methods-grid">
+
+                    <!-- Method 1: InstaPay -->
+                    <div class="method-card instapay-card">
+                        <div class="card-header">
+                            <div class="check-icon">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="header-text">
+                                <h3>إنستاباي (InstaPay)</h3>
+                                <p>توزع مباشرة من خلال رابط</p>
+                            </div>
+                            <div class="header-icon">🧡</div>
+                        </div>
+
+                        <div class="card-body">
+                            <!-- InstaPay Link Button -->
+                            <button class="instapay-link-btn" onclick="openInstapayLink()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M13.5 6H18V11.5M18 6L8 16M18 6V9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M18 13.5V18C18 19.1046 17.1046 20 16 20H6C4.89543 20 4 19.1046 4 18V8C4 6.89543 4.89543 6 6 6H10.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                افتح رابط الدفع عبر الإنستاباي
+                            </button>
+
+                            <div class="divider-text">— أو —</div>
+
+                            <!-- Phone Number -->
+                            <div class="info-row">
+                                <label>رقم الهاتف (إنستاباي)</label>
+                                <div class="value-with-copy">
+                                    <span class="value-text" dir="ltr">01279934735</span>
+                                    <button class="copy-btn-small" onclick="copyToClipboard('01279934735', this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                                            <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        نسخ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-footer warning">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L2 20H22L12 2Z" fill="#F59E0B"/>
+                                <path d="M12 9V14M12 17V18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span>إرسال الدفع عبر الإنستاباي ثم أرسل إثبات الدفع</span>
+                        </div>
+                    </div>
+
+                    <!-- Method 2: Vodafone Cash -->
+                    <div class="method-card vodafone-card">
+                        <div class="card-header">
+                            <div class="check-icon">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="header-text">
+                                <h3>فودافون كاش</h3>
+                                <p>تحويل فوري عبر فودافون كاش</p>
+                            </div>
+                            <div class="header-icon">📱</div>
+                        </div>
+
+                        <div class="card-body">
+                            <!-- Phone Number -->
+                            <div class="info-row">
+                                <label>رقم المحفظة</label>
+                                <div class="value-with-copy">
+                                    <span class="value-text" dir="ltr">01279934735</span>
+                                    <button class="copy-btn-small" onclick="copyToClipboard('01279934735', this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                                            <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        نسخ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-footer warning">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L2 20H22L12 2Z" fill="#F59E0B"/>
+                                <path d="M12 9V14M12 17V18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span>أرسل إيصال التحويل لتفعيل الاشتراك بشكل فوري</span>
+                        </div>
+                    </div>
+
+                    <!-- Method 3: Bank Transfer D360 -->
+                    <div class="method-card bank-card">
+                        <div class="card-header">
+                            <div class="check-icon">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="header-text">
+                                <h3>تحويل بنكي - D360</h3>
+                                <p>تحويل مباشر للحساب البنكي</p>
+                            </div>
+                            <div class="header-icon">🏦</div>
+                        </div>
+
+                        <div class="card-body">
+                            <!-- Amount -->
+                            <div class="info-row">
+                                <label>المبلغ بالدولار</label>
+                                <div class="value-with-copy">
+                                    <span class="value-text amount-value" id="bankAmountD360">D360</span>
+                                </div>
+                            </div>
+
+                            <!-- Account Name -->
+                            <div class="info-row">
+                                <label>اسم صاحب الحساب</label>
+                                <div class="value-with-copy">
+                                    <span class="value-text">أحمد نصر محمد السيد</span>
+                                    <button class="copy-btn-small" onclick="copyToClipboard('أحمد نصر محمد السيد', this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                                            <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        نسخ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- IBAN -->
+                            <div class="info-row">
+                                <label>رقم الآيبان (IBAN)</label>
+                                <div class="value-with-copy">
+                                    <span class="value-text iban-value" dir="ltr">SA7630609031909112576</span>
+                                    <button class="copy-btn-small" onclick="copyToClipboard('SA7630609031909112576', this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                                            <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        نسخ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-footer info">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#6B7280" stroke-width="2"/>
+                                <path d="M12 8V12M12 16V16.01" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span>⏰ قد يستغرق التحويل من 1 إلى 24 ساعة. إرسال إيصال التحويل لتسريع التفعيل.</span>
+                        </div>
+                    </div>
+
+                    <!-- Method 4: Bank Transfer Saudi -->
+                    <div class="method-card saudi-bank-card">
+                        <div class="card-header">
+                            <div class="check-icon">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="header-text">
+                                <h3>تحويل يورى بنك السعودي</h3>
+                                <p>تحويل داخلي من أي بنك سعودي</p>
+                            </div>
+                            <div class="header-icon">⚡</div>
+                        </div>
+
+                        <div class="card-body">
+                            <!-- Instructions -->
+                            <div class="instructions-box">
+                                <div class="instructions-title">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                        <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="#059669" stroke-width="2"/>
+                                        <path d="M14 2V8H20" stroke="#059669" stroke-width="2"/>
+                                        <path d="M16 13H8M16 17H8M10 9H8" stroke="#059669" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                    <span>خطوات التحويل لعنوان:</span>
+                                </div>
+                                <ol class="steps-list">
+                                    <li>افتح التطبيق البنكي</li>
+                                    <li>اختر <strong>صرف → تحويلات داخلية</strong></li>
+                                    <li>أدخل <strong>اسم أحمد نصر</strong></li>
+                                    <li>أدخل رقم الآيبان أدناه</li>
+                                </ol>
+                            </div>
+
+                            <!-- Account Number -->
+                            <div class="info-row">
+                                <label>رقم الحساب</label>
+                                <div class="value-with-copy">
+                                    <span class="value-text" dir="ltr">01279934735</span>
+                                    <button class="copy-btn-small" onclick="copyToClipboard('01279934735', this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                                            <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        نسخ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-footer warning">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L2 20H22L12 2Z" fill="#F59E0B"/>
+                                <path d="M12 9V14M12 17V18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span>أرسل إيصال التحويل، إرسال المبلغ مع اسم المستخدم للتسريع</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Payment Proof Upload Section -->
+                <div class="proof-section">
+                    <h3>📸 إرسال إثبات الدفع</h3>
+                    <p>بعد إتمام عملية الدفع، يرجى إرسال إثبات الدفع لتفعيل اشتراكك</p>
+                    
+                    <form class="proof-form" id="proofForm" onsubmit="submitProof(event)">
+                        <div class="form-grid">
+                            <div class="form-group-new">
+                                <label for="userName">الاسم الكامل *</label>
+                                <input type="text" id="userName" required placeholder="أدخل اسمك كما في الدفع">
+                            </div>
+                            
+                            <div class="form-group-new">
+                                <label for="userEmail">البريد الإلكتروني *</label>
+                                <input type="email" id="userEmail" required placeholder="example@email.com">
+                            </div>
+                            
+                            <div class="form-group-new">
+                                <label for="userPhone">رقم الواتساب *</label>
+                                <input type="tel" id="userPhone" required placeholder="05xxxxxxxx">
+                            </div>
+                            
+                            <div class="form-group-new">
+                                <label for="paymentMethodSelect">طريقة الدفع المستخدمة *</label>
+                                <select id="paymentMethodSelect" required>
+                                    <option value="">اختر طريقة الدفع</option>
+                                    <option value="instapay">إنستاباي (InstaPay)</option>
+                                    <option value="vodafone">فودافون كاش</option>
+                                    <option value="bank_d360">تحويل بنكي D360</option>
+                                    <option value="bank_saudi">تحويل بنك السعودي</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group-new full-width">
+                                <label for="transactionId">رقم العملية / المرجع (إن وجد)</label>
+                                <input type="text" id="transactionId" placeholder="أدخل رقم العملية إذا كان متاحاً">
+                            </div>
+                            
+                            <div class="form-group-new full-width">
+                                <label for="notes">ملاحظات إضافية</label>
+                                <textarea id="notes" rows="3" placeholder="أي معلومات إضافية تساعدنا في تفعيل اشتراكك..."></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="submit-proof-btn" id="submitProofBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            إرسال إثبات الدفع
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Plans Quick Select -->
+                <div class="plans-quick-select">
+                    <h3>🔄 تغيير الخطة</h3>
+                    <div class="plans-buttons">
+                        <button class="plan-select-btn" onclick="selectPlan('free')">
+                            <span class="btn-plan-name">مجاني</span>
+                            <span class="btn-plan-price">0 ر.س</span>
+                        </button>
+                        <button class="plan-select-btn active" onclick="selectPlan('premium')" id="premiumBtn">
+                            <span class="btn-plan-name">بريميوم</span>
+                            <span class="btn-plan-price">29 ر.س</span>
+                            <span class="popular-tag">⭐ الأكثر شعبية</span>
+                        </button>
+                        <button class="plan-select-btn pro" onclick="selectPlan('creator')" id="creatorBtn">
+                            <span class="btn-plan-name">منشئ محتوى</span>
+                            <span class="btn-plan-price">79 ر.س</span>
+                            <span class="pro-tag">👑 للمحترفين</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Success Modal -->
+        <div class="modal-overlay-new" id="successModalNew" style="display: none;">
+            <div class="success-modal-new">
+                <div class="success-animation-new">
+                    <div class="success-checkmark-new">✓</div>
+                </div>
+                <h2>تم إرسال الإثبات بنجاح! 🎉</h2>
+                <p>سيتم مراجعة إثبات الدفع وتفعيل اشتراكك خلال وقت قصير</p>
+                <div class="success-details-new">
+                    <p>الخطة: <strong id="successPlanNameNew">بريميوم</strong></p>
+                    <p>المبلغ: <strong id="successAmountNew">29 ر.س</strong></p>
+                    <p>رقم الطلب: <strong id="successOrderIdNew">#MSK-XXXXX</strong></p>
+                </div>
+                <div class="success-actions">
+                    <a href="/" class="btn-primary-new">الذهاب للرئيسية</a>
+                    <button class="btn-secondary-new" onclick="closeModal()">إرسال إثمان آخر</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copy Success Toast -->
+        <div class="toast-notification" id="copyToast">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17L4 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>تم النسخ بنجاح!</span>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2024 مستخبي (Mstkhby). جميع الحقوق محفوظة.</p>
+                <p>
+                    <a href="pages/privacy.html">سياسة الخصوصية</a> | 
+                    <a href="pages/terms.html">شروط الاستخدام</a> | 
+                    <a href="pages/dmca.html">DMCA</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/payment-new.js"></script>
+</body>
+</html>
