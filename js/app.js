@@ -33,6 +33,12 @@ class MstkhbyApp {
             
             // Setup auth listener
             this.setupAuthListener();
+
+            // Wait for Firebase to resolve whether there's a logged-in
+            // session BEFORE routing — otherwise the router runs while
+            // this.currentUser is still null (even for a returning,
+            // logged-in user) and wrongly bounces them to the login page.
+            await window.authService?.authReady;
             
             // Setup router
             this.setupRouter();
@@ -1019,12 +1025,11 @@ class MstkhbyApp {
         if (confirmed) {
             try {
                 // Get sender fingerprint from message
-                const messageDoc = await window.MstkhbyFirebase.db
-                    .collection(collections.messages)
-                    .doc(messageId)
-                    .get();
+                const messageSnap = await window.MstkhbyFirebase.database
+                    .ref(`messages/${messageId}`)
+                    .once('value');
 
-                const fingerprint = messageDoc.data()?.senderFingerprint;
+                const fingerprint = messageSnap.val()?.senderFingerprint;
                 await window.messagesService?.blockSender(fingerprint, this.currentUser.uid);
                 
                 window.uiManager?.showToast('تم الحظر', 'تم حظر المرسل بنجاح', 'success');

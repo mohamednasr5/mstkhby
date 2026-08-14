@@ -82,11 +82,24 @@ class UIManager {
             });
         }
 
-        // Auth modal triggers
+        // Auth modal triggers — only open the modal when logged out.
+        // When logged in, app.js's updateUIForAuthState() repurposes these
+        // same buttons to navigate (inbox/profile) via .onclick, but that
+        // doesn't remove this addEventListener — both would otherwise fire
+        // on every click. Checking auth state here keeps it to one action.
         [this.elements.loginBtn, this.elements.signupBtn, 
          this.elements.getStartedBtn, this.elements.ctaSignupBtn].forEach(btn => {
             if (btn) {
                 btn.addEventListener('click', () => {
+                    if (window.authService?.currentUser) {
+                        // Logged in: loginBtn/signupBtn already get a fresh
+                        // .onclick from app.js's updateUIForAuthState(). The
+                        // hero CTA buttons don't, so send them to the inbox.
+                        if (btn.id === 'getStartedBtn' || btn.id === 'ctaSignupBtn') {
+                            window.location.hash = '/inbox';
+                        }
+                        return;
+                    }
                     this.openAuthModal(btn.id === 'signupBtn' || btn.id === 'getStartedBtn' || btn.id === 'ctaSignupBtn');
                 });
             }
@@ -470,11 +483,39 @@ class UIManager {
             }, 500);
 
         } catch (error) {
+            const isUnverified = error.message?.includes('تفعيل بريدك الإلكتروني');
+
             this.showToast(
                 'خطأ في تسجيل الدخول',
                 error.message,
                 'error'
             );
+
+            // Offer an explicit resend action instead of auto-resending on
+            // every failed attempt — see the note in AuthService.login().
+            if (isUnverified) {
+                const wantsResend = await this.showConfirm(
+                    'إعادة إرسال رابط التفعيل',
+                    'هل تريد إعادة إرسال رابط تفعيل البريد الإلكتروني؟',
+                    'إرسال',
+                    'إلغاء'
+                );
+
+                if (wantsResend) {
+                    try {
+                        const result = await window.authService?.resendVerificationEmail(email, password);
+                        this.showToast(
+                            'تم الإرسال',
+                            result?.alreadyVerified
+                                ? 'بريدك مفعّل بالفعل، جرب تسجيل الدخول'
+                                : 'تم إرسال رابط التفعيل، تحقق من بريدك',
+                            'success'
+                        );
+                    } catch (resendError) {
+                        this.showToast('خطأ', resendError.message, 'error');
+                    }
+                }
+            }
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'تسجيل الدخول';

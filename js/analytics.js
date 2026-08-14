@@ -13,7 +13,7 @@
 
 class AnalyticsService {
     constructor() {
-        this.db = window.MstkhbyFirebase?.db;
+        this.database = window.MstkhbyFirebase?.database;
         this.auth = window.MstkhbyFirebase?.auth;
         
         this.apiBase = '/api/analytics';
@@ -42,23 +42,35 @@ class AnalyticsService {
         try {
             const period = options.period || '7d'; // 24h, 7d, 30d, 90d, 1y
             const startDate = this.getStartDate(period);
+            const startMs = startDate.getTime();
 
-            // Fetch messages stats
-            const messagesSnapshot = await this.db.collection('messages')
-                .where('recipientId', '==', userId)
-                .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(startDate))
-                .get();
+            // Fetch the recipient's message IDs from the index, then the messages themselves
+            const indexSnap = await this.database.ref(`messagesByRecipient/${userId}`).once('value');
+            const messageIds = Object.keys(indexSnap.val() || {});
 
-            // Fetch reactions
-            const reactionsSnapshot = await this.db.collectionGroup('reactions')
-                .where('userId', '==', userId)
-                .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(startDate))
-                .get();
+            const allMessages = (await Promise.all(
+                messageIds.map(async (id) => {
+                    const snap = await this.database.ref(`messages/${id}`).once('value');
+                    return snap.exists() ? { id, ...snap.val() } : null;
+                })
+            )).filter(Boolean);
+
+            const messages = allMessages.filter(m => (m.createdAt || 0) >= startMs);
+
+            // Realtime Database has no cross-node "collection group" query, so
+            // reactions are gathered per-message (only messages in the window).
+            const reactionLists = await Promise.all(
+                messages.map(async (m) => {
+                    const snap = await this.database.ref(`messages/${m.id}/reactions`).once('value');
+                    return Object.values(snap.val() || {});
+                })
+            );
+            const reactions = reactionLists.flat().filter(r => (r.createdAt || 0) >= startMs);
 
             // Process data
             const analytics = await this.processUserAnalytics(
-                messagesSnapshot.docs,
-                reactionsSnapshot.docs,
+                messages.map(m => ({ data: () => m })),
+                reactions.map(r => ({ data: () => r })),
                 period,
                 startDate
             );
@@ -504,13 +516,13 @@ class AnalyticsService {
      */
     async trackEvent(eventName, eventData = {}) {
         try {
-            const userId = this.auth.currentUser?.uid;
+            const userId = this.auth.currentUser?.uid || null;
             
-            await this.db.collection('analytics_events').add({
+            await this.database.ref('analyticsEvents').push({
                 eventName,
                 eventData,
                 userId,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
                 userAgent: navigator.userAgent,
                 url: window.location.href
             });

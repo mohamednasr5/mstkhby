@@ -13,7 +13,7 @@
 
 class StripeService {
     constructor() {
-        this.db = window.MstkhbyFirebase?.db;
+        this.database = window.MstkhbyFirebase?.database;
         this.auth = window.MstkhbyFirebase?.auth;
         
         // Stripe Configuration (would be set from environment)
@@ -134,8 +134,8 @@ class StripeService {
             const userId = this.auth.currentUser?.uid;
             if (!userId) return;
 
-            const userDoc = await this.db.collection('users').doc(userId).get();
-            const userData = userDoc.data();
+            const snap = await this.database.ref(`users/${userId}/profile`).once('value');
+            const userData = snap.val() || {};
 
             this.currentPlan = this.plans[userData.plan] || this.plans.free;
 
@@ -147,7 +147,7 @@ class StripeService {
                 this.subscription = {
                     id: userData.subscriptionId,
                     status: userData.subscriptionStatus || 'active',
-                    currentPeriodEnd: userData.subscriptionEndDate?.toDate(),
+                    currentPeriodEnd: userData.subscriptionEndDate ? new Date(userData.subscriptionEndDate) : null,
                     plan: userData.plan,
                     cancelAtPeriodEnd: userData.cancelAtPeriodEnd || false
                 };
@@ -404,20 +404,23 @@ class StripeService {
             if (!userId) return null;
 
             const now = new Date();
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-            // Count today's usage
-            const messagesSnapshot = await this.db.collection('messages')
-                .where('senderId', '==', userId)
-                .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(startOfDay))
-                .get();
+            // Count today's usage via the sender index
+            const indexSnap = await this.database.ref(`messagesBySender/${userId}`).once('value');
+            const messageIds = Object.keys(indexSnap.val() || {});
 
-            const imagesSent = messagesSnapshot.docs.filter(doc => 
-                doc.data().messageType === 'image'
-            ).length;
+            const todaysMessages = (await Promise.all(
+                messageIds.map(async (id) => {
+                    const snap = await this.database.ref(`messages/${id}`).once('value');
+                    return snap.exists() ? snap.val() : null;
+                })
+            )).filter(m => m && (m.createdAt || 0) >= startOfDay);
+
+            const imagesSent = todaysMessages.filter(m => m.messageType === 'image').length;
 
             return {
-                messagesToday: messagesSnapshot.docs.length,
+                messagesToday: todaysMessages.length,
                 imagesToday: imagesSent,
                 limit: {
                     messages: this.currentPlan.limits.messagesPerDay,

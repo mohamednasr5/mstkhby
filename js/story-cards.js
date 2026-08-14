@@ -14,7 +14,7 @@
 class StoryCardsService {
     constructor() {
         this.db = window.MstkhbyFirebase?.db;
-        this.storage = window.MstkhbyFirebase?.storage;
+        this.media = window.mediaApi; // R2 uploads via the Worker API (not Firebase Storage)
         
         this.templates = {
             classic: {

@@ -4,17 +4,17 @@
  * ===================================
  * 
  * Handles file storage operations:
- * - Upload to R2/Cloud Storage
- * - Image optimization
+ * - Upload to R2 (via the Worker API — see js/media-api.js)
+ * - Image optimization (client-side, before upload)
  * - File validation
  * - CDN URL generation
  */
 
 class StorageService {
     constructor() {
-        this.storage = window.MstkhbyFirebase?.storage;
-        this.db = window.MstkhbyFirebase?.db;
-        
+        this.database = window.MstkhbyFirebase?.database;
+        this.media = window.mediaApi;
+
         // Configuration
         this.config = {
             maxFileSize: 50 * 1024 * 1024, // 50MB
@@ -31,23 +31,16 @@ class StorageService {
      */
     async uploadAvatar(file, userId) {
         try {
-            // Validate file
             this.validateImageFile(file);
 
-            // Process and compress image
             const processedImage = await this.processImage(file, 400, 400);
 
-            // Generate unique filename
-            const extension = file.name.split('.').pop();
-            const fileName = `avatars/${userId}_${Date.now()}.${extension}`;
-            
-            // Upload to storage
-            const ref = this.storage.ref(fileName);
-            const snapshot = await ref.put(processedImage);
-            const url = await snapshot.ref.getDownloadURL();
+            const result = await this.media.upload(processedImage, {
+                category: 'avatars'
+            });
 
             console.log('✅ Avatar uploaded successfully');
-            return { success: true, url };
+            return { success: true, url: result.url, key: result.key };
 
         } catch (error) {
             console.error('❌ Avatar upload error:', error);
@@ -56,11 +49,11 @@ class StorageService {
     }
 
     /**
-     * Upload message media (image/video)
+     * Upload message media (image/video) to R2 and record metadata
+     * under messages/{messageId}/media in the Realtime Database.
      */
     async uploadMessageMedia(file, messageId, senderId) {
         try {
-            // Validate based on type
             if (file.type.startsWith('image/')) {
                 this.validateImageFile(file);
             } else if (file.type.startsWith('video/')) {
@@ -70,38 +63,35 @@ class StorageService {
             }
 
             let uploadFile = file;
+            let thumbnailUrl = null;
 
-            // Process images
+            // Process + create a thumbnail for images
             if (file.type.startsWith('image/')) {
                 uploadFile = await this.processImage(file);
-                
-                // Create thumbnail
                 const thumbnail = await this.createThumbnail(file);
-                const thumbnailUrl = await this.uploadThumbnail(thumbnail, messageId);
+                thumbnailUrl = await this.uploadThumbnail(thumbnail, messageId);
             }
 
-            // Generate filename with random string for security
-            const extension = file.name.split('.').pop();
-            const randomString = this.generateRandomString(12);
-            const fileName = `messages/${messageId}/${randomString}.${extension}`;
+            const result = await this.media.upload(uploadFile, {
+                messageId,
+                category: 'messages'
+            });
 
-            // Upload main file
-            const ref = this.storage.ref(fileName);
-            const snapshot = await ref.put(uploadFile);
-            const url = await snapshot.ref.getDownloadURL();
+            const type = file.type.startsWith('image/') ? 'image' : 'video';
 
-            // Store metadata in Firestore
             await this.storeMediaMetadata(messageId, {
-                url,
-                type: file.type.startsWith('image/') ? 'image' : 'video',
+                url: result.url,
+                key: result.key,
+                thumbnailUrl,
+                type,
                 originalName: file.name,
                 size: file.size,
-                uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                uploaderId: senderId
+                uploadedAt: firebase.database.ServerValue.TIMESTAMP,
+                uploaderId: senderId || null
             });
 
             console.log('✅ Media uploaded successfully');
-            return { success: true, url, type: file.type.startsWith('image/') ? 'image' : 'video' };
+            return { success: true, url: result.url, key: result.key, type, thumbnailUrl };
 
         } catch (error) {
             console.error('❌ Media upload error:', error);
@@ -114,16 +104,14 @@ class StorageService {
      */
     async uploadShareCard(canvasData, cardId) {
         try {
-            // Convert canvas to blob
             const blob = await new Promise(resolve => canvasData.toBlob(resolve, 'image/png'));
-            
-            const fileName = `share-cards/${cardId}.png`;
-            const ref = this.storage.ref(fileName);
-            
-            const snapshot = await ref.put(blob);
-            const url = await snapshot.ref.getDownloadURL();
+            const file = new File([blob], `${cardId}.png`, { type: 'image/png' });
 
-            return { success: true, url };
+            const result = await this.media.upload(file, {
+                category: 'share-cards'
+            });
+
+            return { success: true, url: result.url, key: result.key };
 
         } catch (error) {
             console.error('❌ Share card upload error:', error);
@@ -132,53 +120,22 @@ class StorageService {
     }
 
     /**
-     * Delete file from storage
+     * Delete a file from R2 by its URL or object key
      */
-    async deleteFile(url) {
+    async deleteFile(urlOrKey) {
         try {
-            const ref = this.storage.refFromURL(url);
-            await ref.delete();
-            
+            const key = urlOrKey.startsWith('http')
+                ? this.media.keyFromUrl(urlOrKey)
+                : urlOrKey;
+
+            if (!key) throw new Error('مسار الملف غير صالح');
+
+            await this.media.remove(key);
+
             console.log('✅ File deleted successfully');
             return { success: true };
         } catch (error) {
             console.error('❌ File deletion error:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get download URL for a file
-     */
-    async getDownloadURL(filePath) {
-        try {
-            const ref = this.storage.ref(filePath);
-            const url = await ref.getDownloadURL();
-            return url;
-        } catch (error) {
-            console.error('❌ Error getting download URL:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get signed URL for temporary access
-     */
-    async getSignedURL(filePath, expiresIn = 3600) {
-        try {
-            const ref = this.storage.ref(filePath);
-            
-            // Note: Firebase Storage doesn't support signed URLs directly
-            // This would typically use Cloud Functions or R2 for signed URLs
-            const url = await ref.getDownloadURL({
-                customMetadata: {
-                    expiresAt: Date.now() + expiresIn * 1000
-                }
-            });
-
-            return url;
-        } catch (error) {
-            console.error('❌ Error getting signed URL:', error);
             throw error;
         }
     }
@@ -201,7 +158,6 @@ class StorageService {
                     let width = img.width;
                     let height = img.height;
 
-                    // Resize if dimensions provided
                     if (maxWidth && maxWidth < width) {
                         height = (height * maxWidth) / width;
                         width = maxWidth;
@@ -216,15 +172,10 @@ class StorageService {
                     canvas.height = height;
 
                     const ctx = canvas.getContext('2d');
-                    
-                    // Enable image smoothing for better quality
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-                    
-                    // Draw image
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // Convert to blob with compression
                     canvas.toBlob(
                         (blob) => {
                             if (blob) {
@@ -257,15 +208,13 @@ class StorageService {
     /**
      * Upload thumbnail separately
      */
-    async uploadThumbnail(thumbnailBlob, messageId) {
+    async uploadThumbnail(thumbnailFile, messageId) {
         try {
-            const fileName = `messages/${messageId}/thumbnail.png`;
-            const ref = this.storage.ref(fileName);
-            
-            await ref.put(thumbnailBlob);
-            const url = await ref.getDownloadURL();
-            
-            return url;
+            const result = await this.media.upload(thumbnailFile, {
+                messageId,
+                category: 'thumbnails'
+            });
+            return result.url;
         } catch (error) {
             console.warn('Failed to upload thumbnail:', error);
             return null;
@@ -274,9 +223,6 @@ class StorageService {
 
     // ==================== VALIDATION ====================
 
-    /**
-     * Validate image file
-     */
     validateImageFile(file) {
         if (!this.config.allowedImageTypes.includes(file.type)) {
             throw new Error(`نوع الصورة غير مدعوم. الأنواع المسموحة: ${this.config.allowedImageTypes.join(', ')}`);
@@ -289,9 +235,6 @@ class StorageService {
         return true;
     }
 
-    /**
-     * Validate video file
-     */
     validateVideoFile(file) {
         if (!this.config.allowedVideoTypes.includes(file.type)) {
             throw new Error(`نوع الفيديو غير مدعوم. الأنواع المسموحة: ${this.config.allowedVideoTypes.join(', ')}`);
@@ -304,9 +247,6 @@ class StorageService {
         return true;
     }
 
-    /**
-     * Validate any file type
-     */
     validateFile(file) {
         const allAllowedTypes = [...this.config.allowedImageTypes, ...this.config.allowedVideoTypes];
         
@@ -321,33 +261,27 @@ class StorageService {
         return true;
     }
 
-    // ==================== METADATA ====================
+    // ==================== METADATA (Realtime Database) ====================
 
     /**
-     * Store media metadata in Firestore
+     * Store media metadata under messages/{messageId}/media
      */
     async storeMediaMetadata(messageId, metadata) {
         try {
-            await this.db.collection(collections.messages)
-                .doc(messageId)
-                .collection('media')
-                .add(metadata);
+            await this.database.ref(`messages/${messageId}/media`).push(metadata);
         } catch (error) {
             console.warn('Failed to store media metadata:', error);
         }
     }
 
     /**
-     * Get media metadata
+     * Get media metadata for a message
      */
     async getMediaMetadata(messageId) {
         try {
-            const snapshot = await this.db.collection(collections.messages)
-                .doc(messageId)
-                .collection('media')
-                .get();
-
-            return snapshot.docs.map(doc => doc.data());
+            const snapshot = await this.database.ref(`messages/${messageId}/media`).once('value');
+            const val = snapshot.val() || {};
+            return Object.values(val);
         } catch (error) {
             console.error('Error getting media metadata:', error);
             return [];
@@ -356,9 +290,6 @@ class StorageService {
 
     // ==================== UTILITIES ====================
 
-    /**
-     * Format file size to human readable format
-     */
     formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
 
@@ -369,9 +300,6 @@ class StorageService {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    /**
-     * Get file type icon
-     */
     getFileTypeIcon(type) {
         if (type?.startsWith('image/')) return '🖼️';
         if (type?.startsWith('video/')) return '🎥';
@@ -379,9 +307,6 @@ class StorageService {
         return '📎';
     }
 
-    /**
-     * Generate random string for filenames
-     */
     generateRandomString(length = 16) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let result = '';
@@ -391,30 +316,18 @@ class StorageService {
         return result;
     }
 
-    /**
-     * Extract file extension
-     */
     getFileExtension(filename) {
         return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2);
     }
 
-    /**
-     * Check if file is an image
-     */
     isImage(file) {
         return file?.type?.startsWith('image/');
     }
 
-    /**
-     * Check if file is a video
-     */
     isVideo(file) {
         return file?.type?.startsWith('video/');
     }
 
-    /**
-     * Get image dimensions before upload
-     */
     getImageDimensions(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -431,9 +344,6 @@ class StorageService {
         });
     }
 
-    /**
-     * Get video duration before upload
-     */
     getVideoDuration(file) {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
@@ -446,9 +356,6 @@ class StorageService {
         });
     }
 
-    /**
-     * Cleanup temporary URLs
-     */
     revokeObjectURL(url) {
         if (url && url.startsWith('blob:')) {
             URL.revokeObjectURL(url);

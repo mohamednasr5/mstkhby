@@ -8,12 +8,15 @@
  * - Social auth (Google, Apple)
  * - Session management
  * - Password reset
+ *
+ * NOTE: This project uses Firebase Realtime Database (not Firestore).
+ * All data access below goes through `database.ref(...)`.
  */
 
 class AuthService {
     constructor() {
         this.auth = window.MstkhbyFirebase?.auth;
-        this.db = window.MstkhbyFirebase?.db;
+        this.database = window.MstkhbyFirebase?.database;
         this.currentUser = null;
         this.listeners = [];
         
@@ -24,16 +27,23 @@ class AuthService {
 
     // Initialize auth state listener
     initAuthListener() {
-        this.auth.onAuthStateChanged((user) => {
-            this.currentUser = user;
-            this.notifyListeners(user);
-            
-            if (user) {
-                console.log('✅ User logged in:', user.uid);
-                this.updateLastActive(user.uid);
-            } else {
-                console.log('👤 User logged out');
-            }
+        // Resolves once after Firebase restores (or confirms there's no)
+        // session, so other code (like the router) can wait for the real
+        // auth state instead of racing it.
+        this.authReady = new Promise((resolve) => {
+            const unsubscribe = this.auth.onAuthStateChanged((user) => {
+                this.currentUser = user;
+                this.notifyListeners(user);
+
+                if (user) {
+                    console.log('✅ User logged in:', user.uid);
+                    this.updateLastActive(user.uid);
+                } else {
+                    console.log('👤 User logged out');
+                }
+
+                resolve(user);
+            });
         });
     }
 
@@ -53,7 +63,6 @@ class AuthService {
     // Register new user
     async register(email, password, displayName, username) {
         try {
-            // Validate inputs
             if (!this.validateEmail(email)) {
                 throw new Error('البريد الإلكتروني غير صالح');
             }
@@ -62,23 +71,20 @@ class AuthService {
                 throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
             }
 
-            // Check username availability
+            if (!this.validateUsername(username)) {
+                throw new Error('اسم المستخدم يجب أن يكون 3-20 حرف/رقم');
+            }
+
             const usernameAvailable = await this.isUsernameAvailable(username);
             if (!usernameAvailable) {
                 throw new Error('اسم المستخدم مستخدم بالفعل');
             }
 
-            // Create auth account
             const credential = await this.auth.createUserWithEmailAndPassword(email, password);
             const user = credential.user;
 
-            // Update profile
             await user.updateProfile({ displayName });
-
-            // Send verification email
             await user.sendEmailVerification();
-
-            // Create user document in Firestore
             await this.createUserDocument(user, displayName, username);
 
             console.log('✅ Registration successful');
@@ -96,10 +102,14 @@ class AuthService {
             const credential = await this.auth.signInWithEmailAndPassword(email, password);
             const user = credential.user;
 
-            // Check email verification
             if (!user.emailVerified) {
-                await user.sendEmailVerification();
-                throw new Error('يرجى تفعيل بريدك الإلكتروني أولاً. تم إرسال رابط التفعيل مرة أخرى.');
+                // Don't auto-resend here — repeated login attempts before
+                // verifying would otherwise re-trigger sendEmailVerification()
+                // every time, which Firebase flags as abuse and blocks the
+                // device entirely (auth/too-many-requests) for ALL auth
+                // operations, not just email sending. Let the UI offer an
+                // explicit "resend" action instead — see resendVerificationEmail().
+                throw new Error('يرجى تفعيل بريدك الإلكتروني أولاً. يمكنك طلب إعادة إرسال رابط التفعيل.');
             }
 
             console.log('✅ Login successful');
@@ -111,28 +121,48 @@ class AuthService {
         }
     }
 
+    // Explicitly resend the verification email (call from a "resend" button,
+    // never automatically on every login attempt)
+    async resendVerificationEmail(email, password) {
+        try {
+            // Must be signed in to call sendEmailVerification, so sign in
+            // first (this also naturally rate-limits via Firebase's own
+            // signIn throttling rather than uncontrolled repeats).
+            const credential = await this.auth.signInWithEmailAndPassword(email, password);
+            const user = credential.user;
+
+            if (user.emailVerified) {
+                return { success: true, alreadyVerified: true };
+            }
+
+            await user.sendEmailVerification();
+            console.log('✅ Verification email resent');
+            return { success: true, alreadyVerified: false };
+
+        } catch (error) {
+            console.error('❌ Resend verification error:', error);
+            throw this.handleAuthError(error);
+        }
+    }
+
     // Google Sign-In
     async signInWithGoogle() {
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({
-                prompt: 'select_account'
-            });
+            provider.setCustomParameters({ prompt: 'select_account' });
             
             const result = await this.auth.signInWithPopup(provider);
             const user = result.user;
 
-            // Check if user document exists, create if not
-            const userDoc = await this.db.collection(collections.users).doc(user.uid).get();
+            const snapshot = await this.database.ref(`users/${user.uid}/profile`).once('value');
             
-            if (!userDoc.exists) {
-                // Generate unique username from display name
+            if (!snapshot.exists()) {
                 const baseUsername = user.displayName
                     ?.replace(/\s+/g, '_')
                     .toLowerCase()
                     .replace(/[^a-z0-9_]/g, '') || 'user';
                 
-                let username = baseUsername;
+                let username = baseUsername.length >= 3 ? baseUsername : `${baseUsername}user`;
                 let counter = 1;
                 
                 while (!(await this.isUsernameAvailable(username))) {
@@ -156,13 +186,32 @@ class AuthService {
     async signInWithApple() {
         try {
             const provider = new firebase.auth.OAuthProvider('apple.com');
-            provider.setCustomParameters({
-                locale: 'ar'
-            });
+            provider.setCustomParameters({ locale: 'ar' });
             
             const result = await this.auth.signInWithPopup(provider);
+            const user = result.user;
+
+            const snapshot = await this.database.ref(`users/${user.uid}/profile`).once('value');
+
+            if (!snapshot.exists()) {
+                const baseUsername = (user.displayName || 'user')
+                    .replace(/\s+/g, '_')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9_]/g, '') || 'user';
+
+                let username = baseUsername.length >= 3 ? baseUsername : `${baseUsername}user`;
+                let counter = 1;
+
+                while (!(await this.isUsernameAvailable(username))) {
+                    username = `${baseUsername}${counter}`;
+                    counter++;
+                }
+
+                await this.createUserDocument(user, user.displayName, username);
+            }
+
             console.log('✅ Apple sign-in successful');
-            return { success: true, user: result.user };
+            return { success: true, user };
             
         } catch (error) {
             console.error('❌ Apple sign-in error:', error);
@@ -199,14 +248,8 @@ class AuthService {
         try {
             const user = this.auth.currentUser;
             
-            // Re-authenticate first
-            const credential = firebase.auth.EmailAuthProvider.credential(
-                user.email,
-                currentPassword
-            );
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
             await user.reauthenticateWithCredential(credential);
-            
-            // Update password
             await user.updatePassword(newPassword);
             
             console.log('✅ Password updated successfully');
@@ -222,17 +265,18 @@ class AuthService {
         try {
             const user = this.auth.currentUser;
             
-            // Re-authenticate
-            const credential = firebase.auth.EmailAuthProvider.credential(
-                user.email,
-                password
-            );
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
             await user.reauthenticateWithCredential(credential);
+
+            const profileSnap = await this.database.ref(`users/${user.uid}/profile`).once('value');
+            const profile = profileSnap.val();
+
+            await this.database.ref(`users/${user.uid}`).remove();
+
+            if (profile?.username) {
+                await this.database.ref(`usernames/${profile.username.toLowerCase()}`).remove();
+            }
             
-            // Delete user data from Firestore
-            await this.db.collection(collections.users).doc(user.uid).delete();
-            
-            // Delete auth account
             await user.delete();
             
             console.log('✅ Account deleted successfully');
@@ -243,8 +287,10 @@ class AuthService {
         }
     }
 
-    // Create user document in Firestore
+    // Create user record in Realtime Database
     async createUserDocument(user, displayName, username) {
+        const timestamp = firebase.database.ServerValue.TIMESTAMP;
+
         const userData = {
             uid: user.uid,
             email: user.email,
@@ -252,20 +298,17 @@ class AuthService {
             username: username.toLowerCase(),
             photoURL: user.photoURL || null,
             profileUrl: `mstkhby.com/${username.toLowerCase()}`,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: timestamp,
+            lastActiveAt: timestamp,
             isVerified: false,
             plan: 'free',
             settings: {
-                privacyLevel: 'medium', // low, medium, high
+                privacyLevel: 'medium',
                 allowMessages: true,
                 allowMedia: true,
                 autoDeleteReadMessages: false,
                 autoDeleteDays: 30,
-                notifications: {
-                    push: true,
-                    email: false
-                }
+                notifications: { push: true, email: false }
             },
             stats: {
                 totalMessagesReceived: 0,
@@ -274,12 +317,13 @@ class AuthService {
             status: 'active'
         };
 
-        await this.db.collection(collections.users).doc(user.uid).set(userData);
-        
+        // Write profile under users/$uid/profile (matches the security rules)
+        await this.database.ref(`users/${user.uid}/profile`).set(userData);
+
         // Create username index for uniqueness
-        await this.db.collection('usernames').doc(username.toLowerCase()).set({
+        await this.database.ref(`usernames/${username.toLowerCase()}`).set({
             uid: user.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: timestamp
         });
     }
 
@@ -291,16 +335,15 @@ class AuthService {
             return false;
         }
 
-        const doc = await this.db.collection('usernames').doc(normalizedUsername).get();
-        return !doc.exists;
+        const snapshot = await this.database.ref(`usernames/${normalizedUsername}`).once('value');
+        return !snapshot.exists();
     }
 
     // Update last active timestamp
     async updateLastActive(uid) {
         try {
-            await this.db.collection(collections.users).doc(uid).update({
-                lastActiveAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await this.database.ref(`users/${uid}/profile/lastActiveAt`)
+                .set(firebase.database.ServerValue.TIMESTAMP);
         } catch (error) {
             console.warn('Failed to update last active:', error);
         }
@@ -311,11 +354,11 @@ class AuthService {
         if (!this.currentUser) return null;
         
         try {
-            const doc = await this.db.collection(collections.users)
-                .doc(this.currentUser.uid)
-                .get();
+            const snapshot = await this.database
+                .ref(`users/${this.currentUser.uid}/profile`)
+                .once('value');
             
-            return doc.exists ? doc.data() : null;
+            return snapshot.exists() ? snapshot.val() : null;
         } catch (error) {
             console.error('Error getting user data:', error);
             return null;
@@ -329,12 +372,10 @@ class AuthService {
         }
 
         try {
-            await this.db.collection(collections.users)
-                .doc(this.currentUser.uid)
-                .update({
-                    ...updates,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+            await this.database.ref(`users/${this.currentUser.uid}/profile`).update({
+                ...updates,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
             
             console.log('✅ Profile updated successfully');
             return { success: true };
@@ -382,20 +423,16 @@ class AuthService {
     async getUserByUsername(username) {
         try {
             const normalizedUsername = username.toLowerCase();
-            const usernameDoc = await this.db.collection('usernames')
-                .doc(normalizedUsername)
-                .get();
+            const usernameSnap = await this.database.ref(`usernames/${normalizedUsername}`).once('value');
 
-            if (!usernameDoc.exists) {
+            if (!usernameSnap.exists()) {
                 return null;
             }
 
-            const uid = usernameDoc.data().uid;
-            const userDoc = await this.db.collection(collections.users)
-                .doc(uid)
-                .get();
+            const uid = usernameSnap.val().uid;
+            const userSnap = await this.database.ref(`users/${uid}/profile`).once('value');
 
-            return userDoc.exists ? { id: userDoc.id, ...userDoc.data() } : null;
+            return userSnap.exists() ? { id: uid, ...userSnap.val() } : null;
         } catch (error) {
             console.error('Error getting user by username:', error);
             return null;

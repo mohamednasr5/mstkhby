@@ -8,11 +8,15 @@
  * - Verification requests
  * - Badge management
  * - Verification tiers
+ *
+ * Data model (Realtime Database):
+ *   verifications/{userId} -> application object
+ *   users/{userId}/profile -> isVerified, verificationTier, badge fields
  */
 
 class VerificationService {
     constructor() {
-        this.db = window.MstkhbyFirebase?.db;
+        this.database = window.MstkhbyFirebase?.database;
         this.auth = window.MstkhbyFirebase?.auth;
         
         this.verificationTiers = {
@@ -89,7 +93,6 @@ class VerificationService {
     }
 
     async init() {
-        // Listen for auth changes
         if (window.authService) {
             window.authService.subscribe(async (user) => {
                 if (user) {
@@ -104,10 +107,10 @@ class VerificationService {
      */
     async loadVerificationStatus(userId) {
         try {
-            const doc = await this.db.collection('verifications').doc(userId).get();
+            const snap = await this.database.ref(`verifications/${userId}`).once('value');
             
-            if (doc.exists) {
-                const data = doc.data();
+            if (snap.exists()) {
+                const data = snap.val();
                 this.currentStatus = data.status || 'none';
                 this.currentTier = data.tier || null;
                 this.verificationData = data;
@@ -145,14 +148,13 @@ class VerificationService {
      * Check if user can apply for verification
      */
     canApplyForVerification() {
-        // Can't apply if already has a pending request
         if (this.currentStatus === 'pending') return false;
 
         // Can't re-apply if recently rejected (7 day cooldown)
         if (this.currentStatus === 'rejected' && this.verificationData) {
-            const rejectedAt = this.verificationData.rejectedAt?.toDate();
+            const rejectedAt = this.verificationData.rejectedAt; // ms timestamp
             if (rejectedAt) {
-                const daysSinceRejection = (Date.now() - rejectedAt.getTime()) / (1000 * 60 * 60 * 24);
+                const daysSinceRejection = (Date.now() - rejectedAt) / (1000 * 60 * 60 * 24);
                 if (daysSinceRejection < 7) return false;
             }
         }
@@ -167,7 +169,7 @@ class VerificationService {
         if (!this.currentTier) return this.verificationTiers.basic;
         if (this.currentTier === 'basic') return this.verificationTiers.influencer;
         if (this.currentTier === 'influencer') return this.verificationTiers.celebrity;
-        return null; // Already at highest tier
+        return null;
     }
 
     /**
@@ -185,7 +187,6 @@ class VerificationService {
             const tier = this.verificationTiers[tierId];
             if (!tier) throw new Error('مستوى تحقق غير صالح');
 
-            // Validate required fields
             const requiredFields = ['fullName', 'bio', 'socialLinks', 'reason'];
             for (const field of requiredFields) {
                 if (!applicationData[field]) {
@@ -193,7 +194,8 @@ class VerificationService {
                 }
             }
 
-            // Create verification document
+            const timestamp = firebase.database.ServerValue.TIMESTAMP;
+
             const application = {
                 userId,
                 tier: tierId,
@@ -201,35 +203,33 @@ class VerificationService {
                 data: {
                     fullName: applicationData.fullName,
                     bio: applicationData.bio,
-                    socialLinks: applicationData.socialLinks, // Array of {platform, url, followers}
-                    reason: applicationData.reason, // Why should they be verified?
-                    audienceType: applicationData.audienceType, // e.g., 'entertainment', 'education', 'business'
-                    contentExamples: applicationData.contentExamples || [], // URLs to content samples
+                    socialLinks: applicationData.socialLinks,
+                    reason: applicationData.reason,
+                    audienceType: applicationData.audienceType || null,
+                    contentExamples: applicationData.contentExamples || [],
                     additionalNotes: applicationData.additionalNotes || ''
                 },
                 documents: {
-                    idDocument: applicationData.idDocument || null, // For identity verification
+                    idDocument: applicationData.idDocument || null,
                     profilePhoto: applicationData.profilePhoto || null,
-                    socialProof: applicationData.socialProof || [] // Screenshots of social accounts
+                    socialProof: applicationData.socialProof || []
                 },
-                submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                submittedAt: timestamp,
                 reviewedBy: null,
                 reviewedAt: null,
                 rejectionReason: null,
                 rejectionDetails: null
             };
 
-            // Save to Firestore
-            await this.db.collection('verifications').doc(userId).set(application);
+            // Save application + flag on the user's profile in one multi-path update
+            const updates = {};
+            updates[`verifications/${userId}`] = application;
+            updates[`users/${userId}/profile/verificationRequested`] = true;
+            updates[`users/${userId}/profile/verificationRequestTier`] = tierId;
+            updates[`users/${userId}/profile/verificationRequestDate`] = timestamp;
 
-            // Update user document with verification request info
-            await this.db.collection('users').doc(userId).update({
-                verificationRequested: true,
-                verificationRequestTier: tierId,
-                verificationRequestDate: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await this.database.ref().update(updates);
 
-            // Send notification to admins
             await this.notifyAdminsOfNewApplication(userId, tier);
 
             window.uiManager?.showToast(
@@ -252,22 +252,26 @@ class VerificationService {
      */
     async getApplications(filters = {}) {
         try {
-            let query = this.db.collection('verifications')
-                .where('status', '==', filters.status || 'pending');
+            const status = filters.status || 'pending';
 
-            const snapshot = await query.get();
+            const snap = await this.database.ref('verifications')
+                .orderByChild('status')
+                .equalTo(status)
+                .once('value');
 
-            const applications = await Promise.all(snapshot.docs.map(async (doc) => {
-                const appData = doc.data();
-                const userData = await this.db.collection('users').doc(doc.id).get();
+            const val = snap.val() || {};
 
-                return {
-                    id: doc.id,
-                    ...appData,
-                    submittedAt: appData.submittedAt?.toDate(),
-                    user: userData.exists ? userData.data() : null
-                };
-            }));
+            const applications = await Promise.all(
+                Object.entries(val).map(async ([userId, appData]) => {
+                    const userSnap = await this.database.ref(`users/${userId}/profile`).once('value');
+
+                    return {
+                        id: userId,
+                        ...appData,
+                        user: userSnap.exists() ? userSnap.val() : null
+                    };
+                })
+            );
 
             return { success: true, applications };
 
@@ -282,34 +286,34 @@ class VerificationService {
      */
     async approveApplication(userId, adminNotes = '') {
         try {
-            const appDoc = await this.db.collection('verifications').doc(userId).get();
+            const appSnap = await this.database.ref(`verifications/${userId}`).once('value');
             
-            if (!appDoc.exists) throw new Error('طلب غير موجود');
+            if (!appSnap.exists()) throw new Error('طلب غير موجود');
             
-            const appData = appDoc.data();
+            const appData = appSnap.val();
             const tier = this.verificationTiers[appData.tier];
+            const adminId = this.auth.currentUser?.uid || null;
+            const timestamp = firebase.database.ServerValue.TIMESTAMP;
 
-            // Update verification document
-            await appDoc.ref.update({
-                status: 'approved',
-                reviewedBy: 'admin_current_user_id', // Would get from auth
-                reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                adminNotes
-            });
+            const profileSnap = await this.database.ref(`users/${userId}/profile`).once('value');
+            const username = profileSnap.val()?.username;
 
-            // Update user with verified badge
-            await this.db.collection('users').doc(userId).update({
-                isVerified: true,
-                verificationTier: appData.tier,
-                verifiedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                badgeColor: tier.color,
-                badgeIcon: tier.icon,
-                customShortLink: appData.tier !== 'basic' 
-                    ? `mstkh.by/${(await this.db.collection('users').doc(userId).get()).data()?.username}` 
-                    : null
-            });
+            const updates = {};
+            updates[`verifications/${userId}/status`] = 'approved';
+            updates[`verifications/${userId}/reviewedBy`] = adminId;
+            updates[`verifications/${userId}/reviewedAt`] = timestamp;
+            updates[`verifications/${userId}/adminNotes`] = adminNotes;
 
-            // Send notification to user
+            updates[`users/${userId}/profile/isVerified`] = true;
+            updates[`users/${userId}/profile/verificationTier`] = appData.tier;
+            updates[`users/${userId}/profile/verifiedAt`] = timestamp;
+            updates[`users/${userId}/profile/badgeColor`] = tier.color;
+            updates[`users/${userId}/profile/badgeIcon`] = tier.icon;
+            updates[`users/${userId}/profile/customShortLink`] =
+                appData.tier !== 'basic' && username ? `mstkh.by/${username}` : null;
+
+            await this.database.ref().update(updates);
+
             await this.sendVerificationNotification(userId, 'approved', tier);
 
             return { success: true };
@@ -325,29 +329,27 @@ class VerificationService {
      */
     async rejectApplication(userId, reason, details = '') {
         try {
-            const appDoc = await this.db.collection('verifications').doc(userId).get();
+            const appSnap = await this.database.ref(`verifications/${userId}`).once('value');
             
-            if (!appDoc.exists) throw new Error('طلب غير موجود');
+            if (!appSnap.exists()) throw new Error('طلب غير موجود');
 
-            const appData = appDoc.data();
+            const adminId = this.auth.currentUser?.uid || null;
+            const timestamp = firebase.database.ServerValue.TIMESTAMP;
 
-            // Update verification document
-            await appDoc.ref.update({
-                status: 'rejected',
-                reviewedBy: 'admin_current_user_id',
-                reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                rejectionReason: reason,
-                rejectionDetails: details,
-                canReapplyAfter: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            });
+            const updates = {};
+            updates[`verifications/${userId}/status`] = 'rejected';
+            updates[`verifications/${userId}/reviewedBy`] = adminId;
+            updates[`verifications/${userId}/reviewedAt`] = timestamp;
+            updates[`verifications/${userId}/rejectionReason`] = reason;
+            updates[`verifications/${userId}/rejectionDetails`] = details;
+            updates[`verifications/${userId}/rejectedAt`] = Date.now();
+            updates[`verifications/${userId}/canReapplyAfter`] = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
-            // Reset user verification flags
-            await this.db.collection('users').doc(userId).update({
-                verificationRequested: false,
-                isVerified: false
-            });
+            updates[`users/${userId}/profile/verificationRequested`] = false;
+            updates[`users/${userId}/profile/isVerified`] = false;
 
-            // Send notification to user
+            await this.database.ref().update(updates);
+
             await this.sendVerificationNotification(userId, 'rejected', null, reason);
 
             return { success: true };
@@ -493,7 +495,6 @@ class VerificationService {
         const form = event.target;
         const formData = new FormData(form);
 
-        // Collect social links
         const socialLinks = [];
         const platformInputs = form.querySelectorAll('[name="platform[]"]');
         platformInputs.forEach((input, index) => {
@@ -546,18 +547,15 @@ class VerificationService {
     // ==================== NOTIFICATION METHODS ====================
 
     async notifyAdminsOfNewApplication(userId, tier) {
-        // Would send email/push notification to admin team
         console.log(`🔔 New verification application from ${userId} for ${tier.name}`);
     }
 
     async sendVerificationNotification(userId, status, tier, reason = '') {
-        // Would send notification to user
         const messages = {
             approved: `🎉 مبروك! تم قبول طلب التحقق "${tier.name}". شارة التحقق ظهرت الآن على ملفك الشخصي!`,
             rejected: `😔 نأسف، تم رفض طلب التحقيق الخاص بك. السبب: ${reason}. يمكنك التقديم مرة أخرى بعد 7 أيام.`
         };
 
-        // Send push notification or email
         console.log(`📧 Notification sent to ${userId}:`, messages[status]);
     }
 }

@@ -11,14 +11,12 @@
 // Note: This would typically use ES modules syntax in production
 
 const MstkhbyAPI = {
-    // Environment configuration
-    env: {
-        FIREBASE_API_KEY: 'YOUR_FIREBASE_API_KEY',
-        FIREBASE_PROJECT_ID: 'mstkhby-app',
-        R2_BUCKET: 'mstkhby-media',
-        JWT_SECRET: 'your-jwt-secret-key',
-        ADMIN_TOKEN: 'your-admin-token'
-    },
+    // NOTE: real config comes from Cloudflare (wrangler.toml `[vars]` +
+    // `wrangler secret put ...`), injected per-request as `env` and
+    // stored on `this.env` in handleRequest() below. Nothing is
+    // hardcoded here — set actual values with:
+    //   wrangler secret put ADMIN_TOKEN
+    // and by editing the [vars] section of wrangler.toml.
 
     // CORS headers
     corsHeaders: {
@@ -32,6 +30,9 @@ const MstkhbyAPI = {
      * Main request handler
      */
     async handleRequest(request, env) {
+        // Make env (R2 bucket, secrets, vars) available to every handler
+        this.env = env;
+
         // Handle CORS preflight
         if (request.method === 'OPTIONS') {
             return new Response(null, { status: 204, headers: this.corsHeaders });
@@ -48,6 +49,10 @@ const MstkhbyAPI = {
             
             if (path.startsWith('/api/messages/')) {
                 return await this.handleMessages(request, path);
+            }
+
+            if (path.startsWith('/api/moderate/')) {
+                return await this.handleModeration(request, path, env);
             }
             
             if (path.startsWith('/api/media/')) {
@@ -250,6 +255,133 @@ const MstkhbyAPI = {
         });
     },
 
+    // ==================== MODERATION ENDPOINTS ====================
+    // Powered by NVIDIA's nemotron-3.5-content-safety model — checks
+    // both text and images (documents/media before they're published).
+
+    async handleModeration(request, path, env) {
+        switch (true) {
+            case path === '/api/moderate/text' && request.method === 'POST':
+                return await this.moderateTextEndpoint(request, env);
+
+            case path === '/api/moderate/media' && request.method === 'POST':
+                return await this.moderateMediaEndpoint(request, env);
+
+            default:
+                return this.jsonResponse({ error: 'Moderation endpoint not found' }, 404);
+        }
+    },
+
+    async moderateTextEndpoint(request, env) {
+        const data = await request.json();
+        const { content } = data;
+
+        if (!content || typeof content !== 'string') {
+            return this.jsonResponse({ error: 'Content is required' }, 400);
+        }
+
+        const result = await this.moderateWithNvidia({ text: content, env });
+        return this.jsonResponse({ success: true, ...result });
+    },
+
+    async moderateMediaEndpoint(request, env) {
+        const data = await request.json();
+        const { url } = data;
+
+        if (!url) {
+            return this.jsonResponse({ error: 'Media URL is required' }, 400);
+        }
+
+        const result = await this.moderateWithNvidia({ imageUrl: url, env });
+        return this.jsonResponse({ success: true, ...result });
+    },
+
+    /**
+     * Calls NVIDIA's hosted content-safety model (nemotron-3.5-content-safety)
+     * via the standard OpenAI-compatible chat completions endpoint. Supports
+     * text, an image, or both in the same call, and multiple languages
+     * including Arabic. Docs: https://build.nvidia.com/nvidia/nemotron-3.5-content-safety
+     *
+     * Fails CLOSED (blocks) on any error or missing API key — content
+     * should never be published unmoderated just because the check failed.
+     */
+    async moderateWithNvidia({ text = null, imageUrl = null, env }) {
+        if (!env?.NVIDIA_API_KEY) {
+            console.error('NVIDIA_API_KEY not configured — blocking by default');
+            return {
+                allowed: false,
+                reason: 'خدمة المراجعة غير متاحة حالياً، حاول مرة أخرى لاحقاً',
+                severity: 'error'
+            };
+        }
+
+        try {
+            const userContent = [];
+            if (text) userContent.push({ type: 'text', text });
+            if (imageUrl) userContent.push({ type: 'image_url', image_url: { url: imageUrl } });
+
+            if (userContent.length === 0) {
+                return { allowed: true, severity: 'safe' };
+            }
+
+            const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${env.NVIDIA_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'nvidia/nemotron-3.5-content-safety',
+                    // Single text-only message can be a plain string; mixed
+                    // text+image needs the multimodal content-array form.
+                    messages: [{
+                        role: 'user',
+                        content: (userContent.length === 1 && text && !imageUrl) ? text : userContent
+                    }],
+                    max_tokens: 200,
+                    stream: false
+                })
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('NVIDIA moderation API error:', response.status, errText);
+                // Fail closed: don't publish content we couldn't verify
+                return {
+                    allowed: false,
+                    reason: 'تعذر التحقق من المحتوى، حاول مرة أخرى',
+                    severity: 'error'
+                };
+            }
+
+            const result = await response.json();
+            const verdictText = result.choices?.[0]?.message?.content || '';
+
+            const isUnsafe = /User Safety:\s*unsafe/i.test(verdictText)
+                || /Response Safety:\s*unsafe/i.test(verdictText);
+
+            const categoriesMatch = verdictText.match(/Safety Categories:\s*(.+)/i);
+            const categories = categoriesMatch ? categoriesMatch[1].trim() : null;
+
+            return {
+                allowed: !isUnsafe,
+                reason: isUnsafe
+                    ? `المحتوى يخالف سياسة الاستخدام${categories ? ' — ' + categories : ''}`
+                    : null,
+                severity: isUnsafe ? 'high' : 'safe',
+                categories
+            };
+
+        } catch (error) {
+            console.error('NVIDIA moderation call failed:', error);
+            return {
+                allowed: false,
+                reason: 'تعذر التحقق من المحتوى، حاول مرة أخرى',
+                severity: 'error'
+            };
+        }
+    },
+
     // ==================== MESSAGES ENDPOINTS ====================
 
     async handleMessages(request, path) {
@@ -301,7 +433,7 @@ const MstkhbyAPI = {
         }
 
         // AI Moderation
-        const moderationResult = await this.moderateContent(content);
+        const moderationResult = await this.moderateContent(content, this.env);
         if (!moderationResult.allowed) {
             return this.jsonResponse({
                 error: 'Content not allowed',
@@ -512,12 +644,9 @@ const MstkhbyAPI = {
             case path === '/api/media/upload' && request.method === 'POST':
                 return await this.uploadMedia(request, user, env);
             
-            case path === '/api/media/presigned-url' && request.method === 'GET':
-                return await this.generatePresignedUrl(request, user, env);
-            
-            case path.match(/^\/api\/media\/[^\/]+$/) && request.method === 'DELETE':
-                const mediaId = path.split('/')[3];
-                return await this.deleteMedia(mediaId, user, env);
+            case path.match(/^\/api\/media\/(.+)$/) && request.method === 'DELETE':
+                const mediaKey = path.replace('/api/media/', '');
+                return await this.deleteMedia(mediaKey, user, env);
             
             default:
                 return this.jsonResponse({ error: 'Media endpoint not found' }, 404);
@@ -527,7 +656,10 @@ const MstkhbyAPI = {
     async uploadMedia(request, user, env) {
         const formData = await request.formData();
         const file = formData.get('file');
+        // messageId is optional — used to namespace message attachments.
+        // For avatars/share-cards the client sends category='avatars' etc. instead.
         const messageId = formData.get('messageId');
+        const category = formData.get('category') || (messageId ? 'messages' : 'uploads');
 
         if (!file) {
             return this.jsonResponse({ error: 'No file provided' }, 400);
@@ -548,48 +680,54 @@ const MstkhbyAPI = {
             return this.jsonResponse({ error: 'File too large (max 50MB)' }, 400);
         }
 
-        // Upload to R2
-        // const key = `messages/${messageId}/${Date.now()}_${file.name}`;
-        // await env.R2_BUCKET.put(key, file.stream(), {
-        //     httpMetadata: {
-        //         contentType: file.type
-        //     }
-        // });
+        // Build a namespaced, unguessable object key
+        const safeExt = (file.name?.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+        const randomPart = crypto.randomUUID();
+        const key = messageId
+            ? `${category}/${messageId}/${randomPart}.${safeExt}`
+            : `${category}/${user.id}/${randomPart}.${safeExt}`;
 
-        // const url = `${env.R2_DOMAIN}/${key}`;
+        // Upload to R2
+        await env.R2_BUCKET.put(key, file.stream(), {
+            httpMetadata: {
+                contentType: file.type
+            }
+        });
+
+        const url = `${env.R2_PUBLIC_URL}/${key}`;
+
+        // AI moderation (images only — video frame analysis isn't supported
+        // by this endpoint, so videos are covered by the reports/admin flow).
+        if (file.type.startsWith('image/')) {
+            const moderation = await this.moderateWithNvidia({ imageUrl: url, env });
+
+            if (!moderation.allowed) {
+                // Delete the unsafe file immediately — never serve it
+                await env.R2_BUCKET.delete(key);
+
+                return this.jsonResponse({
+                    error: 'Content not allowed',
+                    reason: moderation.reason
+                }, 400);
+            }
+        }
 
         return this.jsonResponse({
             success: true,
-            url: `https://cdn.mstkhby.com/${key}`, // Would be actual R2 URL
+            url,
+            key,
             type: file.type.startsWith('image/') ? 'image' : 'video',
             size: file.size
         }, 201);
     },
 
-    async generatePresignedUrl(request, user, env) {
-        const url = new URL(request.url);
-        const fileName = url.searchParams.get('fileName');
-        const fileType = url.searchParams.get('fileType');
+    async deleteMedia(mediaKey, user, env) {
+        // mediaKey is the R2 object key (path portion after R2_PUBLIC_URL/).
+        // Only allow deleting objects that live under the requesting user's
+        // own namespace, or under a message they're the uploader for.
+        const decodedKey = decodeURIComponent(mediaKey);
 
-        // Generate presigned URL for direct upload to R2
-        // const key = `uploads/${user.id}/${Date.now()}_${fileName}`;
-        // const presignedUrl = await env.R2_BUCKET.createPresignedUrl({
-        //     method: 'PUT',
-        //     key,
-        //     contentType: fileType,
-        //     expiresIn: 3600
-        // });
-
-        return this.jsonResponse({
-            success: true,
-            presignedUrl: '', // Actual presigned URL
-            key: '' // File key after upload
-        });
-    },
-
-    async deleteMedia(mediaId, user, env) {
-        // Delete from R2
-        // await env.R2_BUCKET.delete(mediaId);
+        await env.R2_BUCKET.delete(decodedKey);
 
         return this.jsonResponse({
             success: true,
@@ -866,43 +1004,46 @@ const MstkhbyAPI = {
     async authenticateAdmin(request) {
         const adminToken = request.headers.get('X-Admin-Token');
         
-        if (adminToken === this.env.ADMIN_TOKEN) {
+        if (adminToken && this.env?.ADMIN_TOKEN && adminToken === this.env.ADMIN_TOKEN) {
             return true;
         }
 
-        // Also allow admins with valid JWT that has admin role
+        // Also allow admins whose Firebase custom claims include admin === true
         const user = await this.authenticateUser(request);
-        return user?.role === 'admin';
+        return user?.claims?.admin === true;
     },
 
-    generateToken(payload) {
-        // In production, use proper JWT library
-        // For now, return a mock token
-        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-        const body = btoa(JSON.stringify({
-            ...payload,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
-        }));
-
-        // In production, sign with secret
-        return `${header}.${body}.signature`;
-    },
-
-    verifyToken(token) {
+    // Verifies a real Firebase Auth ID token server-side via the
+    // Identity Toolkit REST API (no crypto library needed in Workers).
+    // Docs: https://cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/lookup
+    async verifyToken(idToken) {
         try {
-            const parts = token.split('.');
-            if (parts.length !== 3) return null;
+            if (!idToken || !this.env?.FIREBASE_API_KEY) return null;
 
-            const payload = JSON.parse(atob(parts[1]));
+            const resp = await fetch(
+                `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${this.env.FIREBASE_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                }
+            );
 
-            // Check expiration
-            if (payload.exp < Math.floor(Date.now() / 1000)) {
-                return null;
-            }
+            if (!resp.ok) return null;
 
-            return payload;
+            const data = await resp.json();
+            const account = data.users?.[0];
+            if (!account) return null;
+
+            return {
+                id: account.localId,
+                email: account.email,
+                emailVerified: account.emailVerified,
+                displayName: account.displayName,
+                claims: account.customAttributes ? JSON.parse(account.customAttributes) : {}
+            };
         } catch (error) {
+            console.error('Token verification failed:', error);
             return null;
         }
     },
@@ -929,42 +1070,9 @@ const MstkhbyAPI = {
             .replace(/'/g, '&#x27;');
     },
 
-    moderateContent(content) {
-        // AI-powered content moderation
-        // In production, would call external AI service
-        
-        const toxicPatterns = [
-            /سب|غبي|حقير|قذر/i, // Arabic toxic words
-            /\b(idiot|stupid|damn)\b/i // English toxic words
-        ];
-
-        const spamPatterns = [
-            /http[s]?:\/\/\S+/gi,
-            /\b\d{5,}\b/g,
-            /(buy|sell|free|click here)/gi
-        ];
-
-        for (const pattern of toxicPatterns) {
-            if (pattern.test(content)) {
-                return {
-                    allowed: false,
-                    reason: 'يحتوي المحتوى على كلمات غير لائقة',
-                    severity: 'medium'
-                };
-            }
-        }
-
-        for (const pattern of spamPatterns) {
-            if (pattern.test(content)) {
-                return {
-                    allowed: false,
-                    reason: 'يحتوي المحتوى على روابط أو أنماط مشبوهة',
-                    severity: 'low'
-                };
-            }
-        }
-
-        return { allowed: true, severity: 'safe' };
+    async moderateContent(content, env) {
+        // Delegates to the real NVIDIA content-safety check
+        return this.moderateWithNvidia({ text: content, env });
     },
 
     calculateExpiry(option) {

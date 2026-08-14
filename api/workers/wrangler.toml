@@ -13,9 +13,16 @@ bucket_name = "mstkhby"
 # Swap it for a custom domain once one is attached (Settings -> Custom Domains).
 [vars]
 R2_PUBLIC_URL = "https://pub-ea1d6029f479415cb6622f43a17a794f.r2.dev"
-FIREBASE_PROJECT_ID = "mstkhby-app"
+FIREBASE_PROJECT_ID = "mstkhby-5687e"
+# Firebase Web API key — this is the same public key used in js/firebase-config.js.
+# It is not a secret (Firebase web API keys are safe to expose client-side),
+# so it's fine as a plain var. Used server-side to verify ID tokens via
+# Identity Toolkit's accounts:lookup REST endpoint.
+FIREBASE_API_KEY = "AIzaSyB9Z_8Zk_bfAUvfFgvoXZ8oAjF9se1eE_Q"
 
 # Secrets — do NOT put real values here. Set them with:
-#   wrangler secret put JWT_SECRET
 #   wrangler secret put ADMIN_TOKEN
-#   wrangler secret put FIREBASE_API_KEY
+#   wrangler secret put NVIDIA_API_KEY
+# NVIDIA_API_KEY powers AI content moderation for messages and uploaded
+# media (nvidia/nemotron-3.5-content-safety). Get a free key at
+# https://build.nvidia.com (Get API Key, top right, after sign-in).

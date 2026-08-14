@@ -9,15 +9,27 @@
  * - Inbox management
  * - Message reactions
  * - Self-destruct messages
+ *
+ * Data model (Realtime Database):
+ *   messages/{messageId}                     -> full message object
+ *   messagesByRecipient/{recipientId}/{id}    -> true  (index for inbox queries)
+ *   messagesBySender/{senderId}/{id}          -> true  (index for sent/usage queries)
+ *   messages/{messageId}/reactions/{id}       -> { userId, reactionType, createdAt }
+ *   messages/{messageId}/replies/{id}         -> reply object
+ *   conversations/{conversationId}            -> thread summary
+ *   blocks/{id}                               -> { blockerId, blockedFingerprint, createdAt }
+ *   reports/{id}                              -> { reporterId, messageId, reason, status, createdAt }
+ *
+ * Media (images/video) is stored in Cloudflare R2 via js/media-api.js,
+ * never in Firebase Storage.
  */
 
 class MessagesService {
     constructor() {
-        this.db = window.MstkhbyFirebase?.db;
-        this.storage = window.MstkhbyFirebase?.storage;
+        this.database = window.MstkhbyFirebase?.database;
+        this.media = window.mediaApi;
         this.auth = window.MstkhbyFirebase?.auth;
-        this.collections = window.MstkhbyFirebase?.collections;
-        
+
         // Real-time listeners
         this.messageListeners = new Map();
     }
@@ -35,24 +47,25 @@ class MessagesService {
                 throw new Error(moderationResult.reason || 'المحتوى غير مسموح به');
             }
 
-            // Prepare message document
             const messageId = this.generateId();
-            const now = firebase.firestore.FieldValue.serverTimestamp();
+            const now = firebase.database.ServerValue.TIMESTAMP;
 
             let mediaUrl = null;
             let mediaType = null;
 
-            // Handle media upload if present
+            // Handle media upload if present (goes to R2, not Firebase Storage)
             if (messageType !== 'text' && messageData.mediaFile) {
                 const uploadResult = await this.uploadMedia(messageData.mediaFile, recipientId);
                 mediaUrl = uploadResult.url;
                 mediaType = uploadResult.type;
             }
 
+            const senderId = this.auth?.currentUser?.uid || null; // null for anonymous
+
             const messageDoc = {
                 id: messageId,
                 recipientId,
-                senderId: this.auth?.currentUser?.uid || null, // null for anonymous
+                senderId,
                 content: this.sanitizeContent(content),
                 messageType: messageType || 'text',
                 mediaUrl,
@@ -68,8 +81,15 @@ class MessagesService {
                 expiresAt: this.calculateExpiry(destructOption)
             };
 
-            // Save to Firestore
-            await this.db.collection(this.collections.messages).doc(messageId).set(messageDoc);
+            // Write the message + both indexes atomically with a multi-path update
+            const updates = {};
+            updates[`messages/${messageId}`] = messageDoc;
+            updates[`messagesByRecipient/${recipientId}/${messageId}`] = true;
+            if (senderId) {
+                updates[`messagesBySender/${senderId}/${messageId}`] = true;
+            }
+
+            await this.database.ref().update(updates);
 
             // Update recipient's stats
             await this.updateRecipientStats(recipientId);
@@ -97,47 +117,43 @@ class MessagesService {
         try {
             const {
                 limit = 50,
-                startAfter = null,
-                filter = 'all', // all, unread, reactions, media
-                orderBy = 'createdAt',
-                orderDirection = 'desc'
+                filter = 'all' // all, unread, media
             } = options;
 
-            let query = this.db.collection(this.collections.messages)
-                .where('recipientId', '==', userId);
+            // Look up which message IDs belong to this recipient via the index,
+            // newest first (message IDs are time-ordered — see generateId()).
+            const indexSnapshot = await this.database
+                .ref(`messagesByRecipient/${userId}`)
+                .limitToLast(limit)
+                .once('value');
 
-            // Apply filters
+            const indexVal = indexSnapshot.val() || {};
+            const messageIds = Object.keys(indexVal).reverse(); // newest first
+
+            // Fetch each message
+            const messages = (await Promise.all(
+                messageIds.map(async (id) => {
+                    const snap = await this.database.ref(`messages/${id}`).once('value');
+                    return snap.exists() ? { id, ...snap.val() } : null;
+                })
+            )).filter(Boolean);
+
+            // Apply filters client-side (Realtime DB has no compound queries)
+            let filtered = messages;
             if (filter === 'unread') {
-                query = query.where('isRead', '==', false);
+                filtered = messages.filter(m => !m.isRead);
             } else if (filter === 'media') {
-                query = query.where('messageType', 'in', ['image', 'video']);
+                filtered = messages.filter(m => m.messageType === 'image' || m.messageType === 'video');
             }
 
-            // Apply ordering and pagination
-            query = query.orderBy(orderBy, orderDirection);
-            query = query.limit(limit);
-
-            if (startAfter) {
-                query = query.startAfter(startAfter);
-            }
-
-            const snapshot = await query.get();
-            
-            const messages = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                createdAt: doc.data().createdAt?.toDate(),
-                expiresAt: doc.data().expiresAt?.toDate()
-            }));
-
-            // Check for expired messages and mark them
-            await this.checkExpiredMessages(messages);
+            // Check for expired messages and clean them up
+            await this.checkExpiredMessages(filtered);
 
             return {
                 success: true,
-                messages,
-                hasMore: snapshot.docs.length === limit,
-                lastDoc: snapshot.docs[snapshot.docs.length - 1]
+                messages: filtered,
+                hasMore: messageIds.length === limit,
+                total: filtered.length
             };
 
         } catch (error) {
@@ -150,25 +166,29 @@ class MessagesService {
      * Listen to real-time inbox updates
      */
     subscribeToInbox(userId, callback) {
-        const unsubscribe = this.db.collection(this.collections.messages)
-            .where('recipientId', '==', userId)
-            .orderBy('createdAt', 'desc')
-            .limit(100)
-            .onSnapshot(
-                async (snapshot) => {
-                    const messages = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        createdAt: doc.data().createdAt?.toDate()
-                    }));
-                    
-                    callback(messages);
-                },
-                (error) => {
-                    console.error('❌ Inbox subscription error:', error);
-                }
-            );
+        const indexRef = this.database.ref(`messagesByRecipient/${userId}`).limitToLast(100);
 
+        const handler = async (snapshot) => {
+            try {
+                const indexVal = snapshot.val() || {};
+                const messageIds = Object.keys(indexVal).reverse();
+
+                const messages = (await Promise.all(
+                    messageIds.map(async (id) => {
+                        const snap = await this.database.ref(`messages/${id}`).once('value');
+                        return snap.exists() ? { id, ...snap.val() } : null;
+                    })
+                )).filter(Boolean);
+
+                callback(messages);
+            } catch (error) {
+                console.error('❌ Inbox subscription error:', error);
+            }
+        };
+
+        indexRef.on('value', handler);
+
+        const unsubscribe = () => indexRef.off('value', handler);
         this.messageListeners.set(userId, unsubscribe);
         return unsubscribe;
     }
@@ -178,13 +198,13 @@ class MessagesService {
      */
     async getMessage(messageId, userId) {
         try {
-            const doc = await this.db.collection(this.collections.messages).doc(messageId).get();
+            const snap = await this.database.ref(`messages/${messageId}`).once('value');
             
-            if (!doc.exists) {
+            if (!snap.exists()) {
                 throw new Error('الرسالة غير موجودة');
             }
 
-            const message = { id: doc.id, ...doc.data() };
+            const message = { id: messageId, ...snap.val() };
 
             // Verify user owns this message
             if (message.recipientId !== userId) {
@@ -192,7 +212,7 @@ class MessagesService {
             }
 
             // Check if expired
-            if (message.expiresAt && new Date() > message.expiresAt.toDate()) {
+            if (message.expiresAt && Date.now() > message.expiresAt) {
                 await this.deleteMessage(messageId);
                 throw new Error('هذه الرسالة منتهية الصلاحية');
             }
@@ -201,9 +221,7 @@ class MessagesService {
             if (!message.isRead) {
                 await this.markAsRead(messageId);
                 
-                // Handle self-destruct on open
                 if (message.destructOption === 'one-view') {
-                    // Start destruction timer
                     setTimeout(() => this.deleteMessage(messageId), 5000); // 5 seconds to read
                 }
             }
@@ -221,9 +239,9 @@ class MessagesService {
      */
     async markAsRead(messageId) {
         try {
-            await this.db.collection(this.collections.messages).doc(messageId).update({
+            await this.database.ref(`messages/${messageId}`).update({
                 isRead: true,
-                openedAt: firebase.firestore.FieldValue.serverTimestamp()
+                openedAt: firebase.database.ServerValue.TIMESTAMP
             });
         } catch (error) {
             console.error('Error marking message as read:', error);
@@ -231,34 +249,36 @@ class MessagesService {
     }
 
     /**
-     * Delete a message
+     * Delete a message (and its reactions/replies/media)
      */
     async deleteMessage(messageId) {
         try {
-            const doc = await this.db.collection(this.collections.messages).doc(messageId).get();
+            const snap = await this.database.ref(`messages/${messageId}`).once('value');
             
-            if (doc.exists) {
-                const data = doc.data();
-                
-                // Delete media from storage if exists
+            if (snap.exists()) {
+                const data = snap.val();
+
+                // Delete media from R2 if present
                 if (data.mediaUrl) {
                     try {
-                        await this.storage.refFromURL(data.mediaUrl).delete();
+                        const key = this.media.keyFromUrl(data.mediaUrl);
+                        if (key) await this.media.remove(key);
                     } catch (e) {
                         console.warn('Failed to delete media:', e);
                     }
                 }
 
-                // Delete the document
-                await doc.ref.delete();
+                // Remove the message and its index entries in one multi-path update
+                const updates = {};
+                updates[`messages/${messageId}`] = null;
+                if (data.recipientId) {
+                    updates[`messagesByRecipient/${data.recipientId}/${messageId}`] = null;
+                }
+                if (data.senderId) {
+                    updates[`messagesBySender/${data.senderId}/${messageId}`] = null;
+                }
 
-                // Delete associated reactions
-                const reactionsSnapshot = await doc.ref.collection('reactions').get();
-                const batch = this.db.batch();
-                reactionsSnapshot.docs.forEach(reactionDoc => {
-                    batch.delete(reactionDoc.ref);
-                });
-                await batch.commit();
+                await this.database.ref().update(updates);
             }
 
             console.log('✅ Message deleted');
@@ -271,7 +291,7 @@ class MessagesService {
     }
 
     /**
-     * Add reaction to message
+     * Add reaction to message (one reaction per user — replaces any previous one)
      */
     async addReaction(messageId, reactionType, userId) {
         try {
@@ -281,36 +301,28 @@ class MessagesService {
                 throw new Error('نوع التفاعل غير صالح');
             }
 
-            // Check if user already reacted
-            const existingReaction = await this.db
-                .collection(this.collections.messages)
-                .doc(messageId)
-                .collection('reactions')
-                .where('userId', '==', userId)
-                .get();
+            const reactionsRef = this.database.ref(`messages/${messageId}/reactions`);
 
-            const batch = this.db.batch();
+            // Remove any previous reaction from this user
+            const existingSnap = await reactionsRef
+                .orderByChild('userId')
+                .equalTo(userId)
+                .once('value');
 
-            // Remove previous reaction if exists
-            existingReaction.docs.forEach(doc => {
-                batch.delete(doc.ref);
+            const removals = {};
+            existingSnap.forEach(child => {
+                removals[child.key] = null;
             });
+            if (Object.keys(removals).length) {
+                await reactionsRef.update(removals);
+            }
 
-            // Add new reaction
-            const reactionRef = this.db
-                .collection(this.collections.messages)
-                .doc(messageId)
-                .collection('reactions')
-                .doc();
-
-            batch.set(reactionRef, {
-                id: reactionRef.id,
+            // Add the new reaction
+            await reactionsRef.push({
                 userId,
                 reactionType,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.database.ServerValue.TIMESTAMP
             });
-
-            await batch.commit();
 
             console.log('✅ Reaction added');
             return { success: true };
@@ -326,18 +338,14 @@ class MessagesService {
      */
     async removeReaction(messageId, userId) {
         try {
-            const reactions = await this.db
-                .collection(this.collections.messages)
-                .doc(messageId)
-                .collection('reactions')
-                .where('userId', '==', userId)
-                .get();
+            const reactionsRef = this.database.ref(`messages/${messageId}/reactions`);
+            const snap = await reactionsRef.orderByChild('userId').equalTo(userId).once('value');
 
-            const batch = this.db.batch();
-            reactions.docs.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
+            const removals = {};
+            snap.forEach(child => { removals[child.key] = null; });
+            if (Object.keys(removals).length) {
+                await reactionsRef.update(removals);
+            }
 
             return { success: true };
         } catch (error) {
@@ -352,25 +360,20 @@ class MessagesService {
     async replyToMessage(messageId, replyData) {
         try {
             const originalMessage = await this.getMessage(messageId, replyData.recipientId);
-            
+
+            const replyRef = this.database.ref(`messages/${messageId}/replies`).push();
             const replyDoc = {
-                id: this.generateId(),
+                id: replyRef.key,
                 originalMessageId: messageId,
                 senderId: replyData.senderId || null,
                 recipientId: originalMessage.message.senderId,
                 content: this.sanitizeContent(replyData.content),
                 identity: replyData.identity || 'anonymous',
                 alias: replyData.identity === 'alias' ? replyData.alias : null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.database.ServerValue.TIMESTAMP
             };
 
-            // Save reply
-            await this.db
-                .collection(this.collections.messages)
-                .doc(messageId)
-                .collection('replies')
-                .doc(replyDoc.id)
-                .set(replyDoc);
+            await replyRef.set(replyDoc);
 
             // Create or update conversation
             await this.updateConversation(originalMessage.message, replyDoc);
@@ -389,10 +392,10 @@ class MessagesService {
      */
     async blockSender(senderFingerprint, userId) {
         try {
-            await this.db.collection(this.collections.blocks).add({
+            await this.database.ref('blocks').push({
                 blockerId: userId,
                 blockedFingerprint: senderFingerprint,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.database.ServerValue.TIMESTAMP
             });
 
             return { success: true };
@@ -407,12 +410,12 @@ class MessagesService {
      */
     async reportMessage(messageId, reason, userId) {
         try {
-            await this.db.collection(this.collections.reports).add({
+            await this.database.ref('reports').push({
                 reporterId: userId,
                 messageId,
                 reason,
                 status: 'pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: firebase.database.ServerValue.TIMESTAMP
             });
 
             window.uiManager?.showToast(
@@ -433,28 +436,25 @@ class MessagesService {
      */
     async revealIdentity(messageId, userId) {
         try {
-            const messageDoc = await this.db.collection(this.collections.messages).doc(messageId).get();
+            const snap = await this.database.ref(`messages/${messageId}`).once('value');
             
-            if (!messageDoc.exists) {
+            if (!snap.exists()) {
                 throw new Error('الرسالة غير موجودة');
             }
 
-            const message = messageDoc.data();
+            const message = snap.val();
 
-            // Verify ownership
             if (message.recipientId !== userId) {
                 throw new Error('غير مصرح');
             }
 
-            // Check if reveal option was chosen
             if (message.identity !== 'reveal') {
                 throw new Error('هذه الرسالة لا تدعم كشف الهوية');
             }
 
-            // Update message to show identity
-            await messageDoc.ref.update({
+            await this.database.ref(`messages/${messageId}`).update({
                 identityRevealed: true,
-                revealedAt: firebase.firestore.FieldValue.serverTimestamp()
+                revealedAt: firebase.database.ServerValue.TIMESTAMP
             });
 
             return { 
@@ -484,7 +484,6 @@ class MessagesService {
                 recipientUsername: message.recipientUsername
             });
 
-            // Generate share URL or image
             const shareUrl = `${window.location.origin}/share/${messageId}`;
             
             if (navigator.share) {
@@ -508,7 +507,7 @@ class MessagesService {
     // ==================== HELPER METHODS ====================
 
     /**
-     * Generate unique ID
+     * Generate a time-ordered unique ID (so index keys sort chronologically)
      */
     generateId() {
         return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -524,46 +523,42 @@ class MessagesService {
     }
 
     /**
-     * Calculate expiry time based on destruct option
+     * Calculate expiry time (ms since epoch) based on destruct option
      */
     calculateExpiry(option) {
-        const now = new Date();
+        const now = Date.now();
         
         switch (option) {
             case '10sec':
-                return firebase.firestore.Timestamp.fromDate(new Date(now.getTime() + 10 * 1000));
+                return now + 10 * 1000;
             case '30sec':
-                return firebase.firestore.Timestamp.fromDate(new Date(now.getTime() + 30 * 1000));
+                return now + 30 * 1000;
             case '1hour':
-                return firebase.firestore.Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000));
+                return now + 60 * 60 * 1000;
             case '24hours':
-                return firebase.firestore.Timestamp.fromDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+                return now + 24 * 60 * 60 * 1000;
             default:
                 return null; // No expiry for normal messages
         }
     }
 
     /**
-     * Upload media to storage
+     * Upload media to R2 (via the Worker API)
      */
     async uploadMedia(file, recipientId) {
         try {
-            // Validate file
             const validation = this.validateMediaFile(file);
             if (!validation.valid) {
                 throw new Error(validation.error);
             }
 
-            const fileName = `${Date.now()}_${this.generateRandomString(8)}${file.name.substring(file.name.lastIndexOf('.'))}`;
-            const filePath = `messages/${recipientId}/${fileName}`;
-            const ref = this.storage.ref(filePath);
-
-            // Upload file
-            const snapshot = await ref.put(file);
-            const url = await snapshot.ref.getDownloadURL();
+            const result = await this.media.upload(file, {
+                category: 'messages',
+                messageId: recipientId // namespaced by recipient until the real messageId exists
+            });
 
             return {
-                url,
+                url: result.url,
                 type: file.type.startsWith('image/') ? 'image' : 'video'
             };
 
@@ -579,12 +574,8 @@ class MessagesService {
     validateMediaFile(file) {
         const maxSize = 50 * 1024 * 1024; // 50MB
         const allowedTypes = [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-            'video/mp4',
-            'video/webm'
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'video/mp4', 'video/webm'
         ];
 
         if (!allowedTypes.includes(file.type)) {
@@ -615,10 +606,10 @@ class MessagesService {
      */
     async updateRecipientStats(recipientId) {
         try {
-            await this.db.collection(collections.users).doc(recipientId).update({
-                'stats.totalMessagesReceived': firebase.firestore.FieldValue.increment(1),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            const statsRef = this.database.ref(`users/${recipientId}/profile/stats/totalMessagesReceived`);
+            await statsRef.transaction(current => (current || 0) + 1);
+            await this.database.ref(`users/${recipientId}/profile/updatedAt`)
+                .set(firebase.database.ServerValue.TIMESTAMP);
         } catch (error) {
             console.warn('Failed to update stats:', error);
         }
@@ -634,15 +625,16 @@ class MessagesService {
                 .sort()
                 .join('_');
 
-            await this.db.collection(this.collections.conversations)
-                .doc(conversationId)
-                .set({
-                    participants: [originalMessage.recipientId, reply.senderId].filter(Boolean),
-                    lastMessage: reply.content,
-                    lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    messageCount: firebase.firestore.FieldValue.increment(1),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+            const convRef = this.database.ref(`conversations/${conversationId}`);
+
+            await convRef.update({
+                participants: [originalMessage.recipientId, reply.senderId].filter(Boolean),
+                lastMessage: reply.content,
+                lastMessageAt: firebase.database.ServerValue.TIMESTAMP,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            await convRef.child('messageCount').transaction(current => (current || 0) + 1);
 
         } catch (error) {
             console.warn('Failed to update conversation:', error);
@@ -653,7 +645,7 @@ class MessagesService {
      * Check and handle expired messages
      */
     async checkExpiredMessages(messages) {
-        const now = new Date();
+        const now = Date.now();
         
         for (const message of messages) {
             if (message.expiresAt && now > message.expiresAt) {
@@ -667,48 +659,44 @@ class MessagesService {
     }
 
     /**
-     * AI Content Moderation
+     * AI Content Moderation — delegates to the Worker's /api/moderate/text
+     * endpoint, which calls NVIDIA's nemotron-3.5-content-safety model.
+     * The NVIDIA API key never touches the client — it stays server-side.
      */
     async moderateContent(content) {
         try {
-            // This would typically call an API endpoint with AI moderation
-            // For now, basic client-side checks
-            
-            const toxicWords = ['سب', 'غبي', 'حقير', 'قذر']; // Example list
-            
-            const containsToxic = toxicWords.some(word => 
-                content.toLowerCase().includes(word)
-            );
+            const apiBase = window.MstkhbyFirebase?.apiBaseUrl;
+            const response = await fetch(`${apiBase}/api/moderate/text`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
 
-            if (containsToxic) {
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Fail closed — don't publish content that couldn't be verified
                 return {
                     allowed: false,
-                    reason: 'يحتوي المحتوى على كلمات غير لائقة',
-                    severity: 'medium'
-                };
-            }
-
-            // Check for spam patterns
-            const spamPatterns = [/http[s]?:\/\/\S+/gi, /\b\d{5,}\b/g];
-            const containsSpam = spamPatterns.some(pattern => pattern.test(content));
-
-            if (containsSpam) {
-                return {
-                    allowed: false,
-                    reason: 'يحتوي المحتوى على روابط أو أنماط مشبوهة',
-                    severity: 'low'
+                    reason: data.reason || 'تعذر التحقق من المحتوى، حاول مرة أخرى',
+                    severity: 'error'
                 };
             }
 
             return {
-                allowed: true,
-                severity: 'safe'
+                allowed: data.allowed,
+                reason: data.reason,
+                severity: data.severity
             };
 
         } catch (error) {
-            console.error('Moderation error:', error);
-            // Allow by default if moderation fails
-            return { allowed: true, severity: 'unknown' };
+            console.error('Moderation request failed:', error);
+            // Fail closed on network errors too
+            return {
+                allowed: false,
+                reason: 'تعذر التحقق من المحتوى، تحقق من اتصالك بالإنترنت',
+                severity: 'error'
+            };
         }
     }
 
@@ -717,7 +705,6 @@ class MessagesService {
      */
     async sendPushNotification(userId, notificationData) {
         // This would integrate with Firebase Cloud Messaging
-        // For now, just log it
         console.log('📬 Push notification:', notificationData);
     }
 
