@@ -206,12 +206,13 @@ class MstkhbyApp {
         const hash = window.location.hash.slice(1) || '/';
         this.currentRoute = hash;
 
-        // Parse route parameters
-        const [path, ...params] = hash.split('/');
+        // Parse route parameters (strip the leading '/' first — otherwise
+        // '/inbox'.split('/') => ['', 'inbox'] and path is always '')
+        const cleanHash = hash.startsWith('/') ? hash.slice(1) : hash;
+        const [path, ...params] = cleanHash.split('/');
         
         switch (path) {
             case '':
-            case '/':
                 this.showHomePage();
                 break;
                 
