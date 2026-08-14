@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
-    <!-- CSS -->
+    <!-- Main CSS (same as every other page) -->
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/animations.css">
@@ -21,25 +21,44 @@
     <link rel="stylesheet" href="pages/pages.css">
     <link rel="stylesheet" href="css/payment-new.css">
 </head>
-<body class="payment-page-new">
+<body class="payment-page-new" data-page="payment">
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="loader">
+            <div class="loader-icon">🤫</div>
+            <p class="loader-text">جاري التحميل...</p>
+        </div>
+    </div>
+
     <!-- Navigation -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
-            <a href="/" class="nav-logo">
+            <a href="index.html" class="nav-logo">
                 <span class="logo-icon">🤫</span>
                 <span class="logo-text">مستخبي</span>
             </a>
-            
+
             <ul class="nav-menu" id="navMenu">
-                <li><a href="/">الرئيسية</a></li>
-                <li><a href="/#pricing">الأسعار</a></li>
-                <li><a href="pages/games.html">الألعاب</a></li>
-                <li><a href="pages/api-docs.html">API</a></li>
+                <li><a href="index.html" class="nav-link">الرئيسية</a></li>
+                <li><a href="index.html#pricing" class="nav-link">الأسعار</a></li>
+                <li><a href="pages/games.html" class="nav-link">الألعاب</a></li>
+                <li><a href="pages/api-docs.html" class="nav-link">API</a></li>
             </ul>
 
             <div class="nav-actions">
-                <a href="#" class="btn btn-outline btn-sm" id="loginBtn">تسجيل الدخول</a>
+                <button class="btn btn-ghost" id="loginBtn">تسجيل الدخول</button>
+                <button class="btn btn-primary" id="signupBtn">ابدأ مجاناً</button>
+                <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+                    <span class="sun-icon">☀️</span>
+                    <span class="moon-icon">🌙</span>
+                </button>
             </div>
+
+            <button class="mobile-toggle" id="mobileToggle" aria-label="القائمة">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
         </div>
     </nav>
 
@@ -51,7 +70,7 @@
                 <div class="header-content-new">
                     <span class="payment-badge-new">💳 طرق الدفع المتاحة</span>
                     <h1>اختر طريقة الدفع المناسبة</h1>
-                    <p>نوفر لك多种 طرق دفع آمنة ومريحة. اختر ما يناسبك!</p>
+                    <p>نوفر لك عدة طرق دفع آمنة ومريحة. اختر ما يناسبك!</p>
                     
                     <!-- Selected Plan Info -->
                     <div class="selected-plan-display" id="selectedPlanDisplay">
@@ -73,7 +92,7 @@
                         <div class="card-header">
                             <div class="check-icon">
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <circle cx="12" cy="12" r="12"/>
                                     <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </div>
@@ -126,7 +145,7 @@
                         <div class="card-header">
                             <div class="check-icon">
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <circle cx="12" cy="12" r="12"/>
                                     <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </div>
@@ -168,7 +187,7 @@
                         <div class="card-header">
                             <div class="check-icon">
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <circle cx="12" cy="12" r="12"/>
                                     <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </div>
@@ -233,7 +252,7 @@
                         <div class="card-header">
                             <div class="check-icon">
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="12" fill="#22C55E"/>
+                                    <circle cx="12" cy="12" r="12"/>
                                     <path d="M7 12L10.5 15.5L17 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </div>
@@ -398,24 +417,56 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="footer-logo">
+                        <span>🤫</span>
+                        <span>مستخبي</span>
+                    </a>
+                    <p>منصة الرسائل السرية والأكثر خصوصية في العالم العربي</p>
+                </div>
+
+                <div class="footer-links">
+                    <h4>المنصة</h4>
+                    <ul>
+                        <li><a href="index.html">الرئيسية</a></li>
+                        <li><a href="inbox.html">الصندوق الوارد</a></li>
+                        <li><a href="profile.html">حسابي</a></li>
+                        <li><a href="pages/games.html">منصة الألعاب</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4>قانوني</h4>
+                    <ul>
+                        <li><a href="pages/privacy.html">سياسة الخصوصية</a></li>
+                        <li><a href="pages/terms.html">شروط الاستخدام</a></li>
+                        <li><a href="pages/dmca.html">DMCA</a></li>
+                    </ul>
+                </div>
+            </div>
+
             <div class="footer-bottom">
                 <p>&copy; 2024 مستخبي (Mstkhby). جميع الحقوق محفوظة.</p>
-                <p>
-                    <a href="pages/privacy.html">سياسة الخصوصية</a> | 
-                    <a href="pages/terms.html">شروط الاستخدام</a> | 
-                    <a href="pages/dmca.html">DMCA</a>
-                </p>
             </div>
         </div>
     </footer>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    
-    <!-- App Scripts -->
+    <!-- Toast Notifications Container (shared nav/auth toasts) -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Firebase SDK (same version as the rest of the site) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <!-- Shared App Scripts (nav, theme toggle, login state) -->
     <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Payment Page Script -->
     <script src="js/payment-new.js"></script>
 </body>
 </html>

@@ -385,6 +385,60 @@ class AuthService {
         }
     }
 
+    // Change username (allowed once per account)
+    async changeUsername(newUsername) {
+        if (!this.currentUser) {
+            throw new Error('يجب تسجيل الدخول أولاً');
+        }
+
+        if (!this.validateUsername(newUsername)) {
+            throw new Error('اسم المستخدم يجب أن يكون 3-20 حرف/رقم إنجليزي');
+        }
+
+        const normalized = newUsername.toLowerCase();
+
+        const userData = await this.getCurrentUserData();
+        if (!userData) {
+            throw new Error('تعذر تحميل بيانات الحساب');
+        }
+
+        if (userData.usernameChanged) {
+            throw new Error('لقد قمت بتغيير رابطك من قبل، هذا الخيار متاح مرة واحدة فقط');
+        }
+
+        if (userData.username && normalized === userData.username.toLowerCase()) {
+            throw new Error('هذا هو رابطك الحالي بالفعل');
+        }
+
+        const available = await this.isUsernameAvailable(normalized);
+        if (!available) {
+            throw new Error('اسم المستخدم مستخدم بالفعل');
+        }
+
+        const timestamp = firebase.database.ServerValue.TIMESTAMP;
+
+        // Reserve the new username, release the old one
+        await this.database.ref(`usernames/${normalized}`).set({
+            uid: this.currentUser.uid,
+            createdAt: timestamp
+        });
+
+        if (userData.username) {
+            await this.database.ref(`usernames/${userData.username.toLowerCase()}`).remove();
+        }
+
+        await this.database.ref(`users/${this.currentUser.uid}/profile`).update({
+            username: normalized,
+            profileUrl: `mstkhby.com/${normalized}`,
+            usernameChanged: true,
+            usernameChangedAt: timestamp,
+            updatedAt: timestamp
+        });
+
+        console.log('✅ Username changed successfully');
+        return { success: true, username: normalized };
+    }
+
     // Validate email format
     validateEmail(email) {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -50,6 +50,10 @@ class MstkhbyApp {
                 await this.initInboxPage();
             } else if (page === 'profile') {
                 await this.initProfilePage();
+            } else if (page === 'payment') {
+                // payment.html only needs the shared navbar/auth-state
+                // wiring done above (setupAuthListener) — it has its own
+                // page-specific logic in js/payment-new.js.
             } else {
                 // Home page keeps hash routing (only used now for
                 // index.html#username public-profile links).
@@ -718,6 +722,53 @@ class MstkhbyApp {
     }
 
     /**
+     * Handle the "change username" button in the links tab
+     * (allowed once per account — enforced in authService.changeUsername).
+     */
+    async handleUsernameChange() {
+        const input = document.getElementById('newUsernameInput');
+        const btn = document.getElementById('changeUsernameBtn');
+        const newUsername = input?.value?.trim();
+
+        if (!newUsername) {
+            window.uiManager?.showToast('خطأ', 'أدخل الرابط الجديد أولاً', 'error');
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `هل أنت متأكد من تغيير رابطك إلى mstkhby.com/${newUsername.toLowerCase()}؟ لن تتمكن من تغييره مرة أخرى.`
+        );
+        if (!confirmed) return;
+
+        try {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span>';
+            }
+
+            await window.authService?.changeUsername(newUsername);
+
+            window.uiManager?.showToast('تم التغيير', 'تم تحديث رابطك بنجاح', 'success');
+
+            // Refresh the header (name/link) and re-render just this tab,
+            // without bouncing the user back to the "info" tab.
+            const userDataRefreshed = await window.authService?.getCurrentUserData();
+            if (userDataRefreshed) {
+                document.getElementById('profileLink').textContent = `mstkhby.com/${userDataRefreshed.username || ''}`;
+            }
+            await this.loadProfileTab('links');
+
+        } catch (error) {
+            console.error('Error changing username:', error);
+            window.uiManager?.showToast('خطأ', error.message || 'تعذر تغيير الرابط', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'تغيير';
+            }
+        }
+    }
+
+    /**
      * Load profile tab content
      */
     async loadProfileTab(tabName) {
@@ -775,6 +826,8 @@ class MstkhbyApp {
             case 'links': {
                 const userData = await window.authService?.getCurrentUserData();
                 const profileLink = `mstkhby.com/${userData?.username || ''}`;
+                const canChangeUsername = !userData?.usernameChanged;
+
                 contentEl.innerHTML = `
                     <div class="settings-section">
                         <div class="settings-item">
@@ -784,11 +837,31 @@ class MstkhbyApp {
                             </div>
                             <button class="btn btn-ghost btn-sm" onclick="window.uiManager?.copyToClipboard('${profileLink}')">نسخ</button>
                         </div>
+                        <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                            <div class="settings-label">
+                                <strong>تغيير الرابط</strong>
+                                <span>${canChangeUsername
+                                    ? 'يمكنك تغيير رابطك مرة واحدة فقط، اختر بعناية'
+                                    : 'لقد استخدمت فرصة تغيير الرابط بالفعل'}</span>
+                            </div>
+                            ${canChangeUsername ? `
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span style="color: var(--text-tertiary); white-space: nowrap;">mstkhby.com/</span>
+                                    <input type="text" id="newUsernameInput" placeholder="mohamed_123"
+                                        style="flex: 1; direction: ltr; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                                    <button class="btn btn-primary btn-sm" id="changeUsernameBtn">تغيير</button>
+                                </div>
+                            ` : ''}
+                        </div>
                         <div style="padding: 20px; text-align: center; color: var(--text-tertiary);">
                             روابط إضافية متاحة لخطط البريميوم
                         </div>
                     </div>
                 `;
+
+                if (canChangeUsername) {
+                    document.getElementById('changeUsernameBtn')?.addEventListener('click', () => this.handleUsernameChange());
+                }
                 break;
             }
 
