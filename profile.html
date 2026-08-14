@@ -65,7 +65,13 @@
     <main class="app-page">
         <div class="profile-container">
             <div class="profile-header" id="profileHeader">
-                <div class="profile-avatar" id="profileAvatar">👤</div>
+                <div class="profile-avatar">
+                    <span id="profileAvatar">👤</span>
+                    <label class="profile-avatar-edit" id="profileAvatarEdit" title="تغيير الصورة">
+                        📷
+                        <input type="file" id="profileAvatarInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+                    </label>
+                </div>
                 <h2 class="profile-name" id="profileName">تحميل...</h2>
                 <span class="profile-username" id="profileUsername">@username</span>
                 <div class="profile-link-card" id="profileLinkCard">

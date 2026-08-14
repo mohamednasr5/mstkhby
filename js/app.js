@@ -584,7 +584,91 @@ class MstkhbyApp {
             });
         });
 
+        // Wire up avatar upload (camera icon over the avatar)
+        const avatarInput = document.getElementById('profileAvatarInput');
+        if (avatarInput) {
+            avatarInput.addEventListener('change', (e) => this.handleAvatarUpload(e));
+        }
+
         await this.loadProfileData();
+    }
+
+    /**
+     * Handle avatar upload: user picks an image, we upload it and
+     * save the resulting URL on the user's profile.
+     */
+    async handleAvatarUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file || !this.currentUser) return;
+
+        const avatarEl = document.getElementById('profileAvatar');
+        const previousContent = avatarEl?.innerHTML;
+
+        try {
+            if (avatarEl) {
+                avatarEl.innerHTML = '<span class="spinner"></span>';
+            }
+
+            const result = await window.storageService?.uploadAvatar(file, this.currentUser.uid);
+            if (!result?.url) {
+                throw new Error('فشل رفع الصورة');
+            }
+
+            await window.authService?.updateProfile({ photoURL: result.url });
+
+            if (avatarEl) {
+                avatarEl.innerHTML = `<img src="${result.url}" alt="صورة البروفايل" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            }
+
+            window.uiManager?.showToast('تم التحديث', 'تم تحديث صورة البروفايل بنجاح', 'success');
+
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            if (avatarEl) avatarEl.innerHTML = previousContent || '👤';
+            window.uiManager?.showToast('خطأ', error.message || 'تعذر رفع الصورة، حاول مرة أخرى', 'error');
+        } finally {
+            event.target.value = '';
+        }
+    }
+
+    /**
+     * Generate + save a unique username for accounts that somehow ended up
+     * without one, then return the patched user data.
+     */
+    async ensureUsername(userData) {
+        try {
+            const source = userData.displayName || this.currentUser?.email?.split('@')[0] || 'user';
+            const base = source
+                .toString()
+                .replace(/\s+/g, '_')
+                .toLowerCase()
+                .replace(/[^a-z0-9_]/g, '') || 'user';
+
+            let username = base.length >= 3 ? base : `${base}user`;
+            let counter = 1;
+
+            while (!(await window.authService?.isUsernameAvailable(username))) {
+                username = `${base}${counter}`;
+                counter++;
+            }
+
+            await window.authService?.updateProfile({
+                username,
+                profileUrl: `mstkhby.com/${username}`
+            });
+
+            // Also register the username index (createUserDocument normally
+            // does this at signup time, so an older/broken account may be
+            // missing it).
+            await window.MstkhbyFirebase?.database
+                ?.ref(`usernames/${username}`)
+                .set({ uid: this.currentUser.uid, createdAt: firebase.database.ServerValue.TIMESTAMP });
+
+            return { ...userData, username, profileUrl: `mstkhby.com/${username}` };
+        } catch (error) {
+            console.error('Error assigning username:', error);
+            return userData;
+        }
     }
 
     /**
@@ -592,12 +676,18 @@ class MstkhbyApp {
      */
     async loadProfileData() {
         try {
-            const userData = await window.authService?.getCurrentUserData();
-            
+            let userData = await window.authService?.getCurrentUserData();
+
+            // Self-heal older/broken accounts that are missing a username
+            // (shows up as "@undefined" / "mstkhby.com/undefined" otherwise).
+            if (userData && !userData.username) {
+                userData = await this.ensureUsername(userData);
+            }
+
             if (userData) {
-                document.getElementById('profileName').textContent = userData.displayName;
-                document.getElementById('profileUsername').textContent = `@${userData.username}`;
-                document.getElementById('profileLink').textContent = `mstkhby.com/${userData.username}`;
+                document.getElementById('profileName').textContent = userData.displayName || 'مستخدم';
+                document.getElementById('profileUsername').textContent = `@${userData.username || '—'}`;
+                document.getElementById('profileLink').textContent = `mstkhby.com/${userData.username || ''}`;
                 document.getElementById('statMessages').textContent = userData.stats?.totalMessagesReceived || 0;
                 document.getElementById('statReactions').textContent = userData.stats?.totalReactions || 0;
                 
@@ -661,7 +751,7 @@ class MstkhbyApp {
                                 <strong>الخطة</strong>
                                 <span>مجانية</span>
                             </div>
-                            <button class="btn btn-primary btn-sm">ترقية</button>
+                            <button class="btn btn-primary btn-sm" onclick="window.location.href='payment.html'">ترقية</button>
                         </div>
                     </div>
                 `;
