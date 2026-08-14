@@ -698,7 +698,10 @@ class MstkhbyApp {
 
                 // Calculate days active
                 if (userData.createdAt) {
-                    const createdDate = userData.createdAt.toDate();
+                    // Realtime Database stores ServerValue.TIMESTAMP as a
+                    // plain millisecond number, not a Firestore Timestamp —
+                    // there's no .toDate() to call here.
+                    const createdDate = new Date(userData.createdAt);
                     const daysActive = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24));
                     document.getElementById('statDays').textContent = daysActive;
                 }

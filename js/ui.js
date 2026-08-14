@@ -155,6 +155,12 @@ class UIManager {
             });
         }
 
+        // Social sign-in buttons (present in both the login and signup
+        // forms — bind every instance, they had no handler at all before)
+        document.querySelectorAll('.google-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.handleGoogleSignIn(btn));
+        });
+
         // Navbar scroll effect
         window.addEventListener('scroll', () => {
             this.handleScroll();
@@ -458,6 +464,42 @@ class UIManager {
     }
 
     // Handle login form submission
+    async handleGoogleSignIn(btn) {
+        const originalHTML = btn.innerHTML;
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> جاري تسجيل الدخول...';
+
+            await window.authService?.signInWithGoogle();
+
+            this.showToast(
+                'تم بنجاح',
+                'مرحباً بك! 🎉',
+                'success'
+            );
+
+            this.closeModal(this.elements.authModal);
+
+            setTimeout(() => {
+                window.location.hash = '/inbox';
+            }, 500);
+
+        } catch (error) {
+            // User closing the popup shouldn't show as an error
+            if (error.code === 'auth/popup-closed-by-user') return;
+
+            this.showToast(
+                'خطأ في تسجيل الدخول',
+                error.message,
+                'error'
+            );
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    }
+
     async handleLogin(form) {
         const email = form.querySelector('#loginEmail').value;
         const password = form.querySelector('#loginPassword').value;
