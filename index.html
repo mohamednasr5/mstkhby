@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مستخبي - أرسل رسالتك سراً 🤫</title>
+    <meta name="description" content="مستخبي - منصة الرسائل السرية والمجهولة. أرسل ما تريد قوله بالطريقة التي تريدها.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/premium.css">
+</head>
+<body>
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="loader">
+            <div class="loader-icon">🤫</div>
+            <p class="loader-text">جاري التحميل...</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">🤫</span>
+                <span class="logo-text">مستخبي</span>
+            </a>
+            
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home" class="nav-link active">الرئيسية</a></li>
+                <li><a href="#features" class="nav-link">المميزات</a></li>
+                <li><a href="#how-it-works" class="nav-link">كيف يعمل</a></li>
+                <li><a href="#pricing" class="nav-link">الأسعار</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <button class="btn btn-ghost" id="loginBtn">تسجيل الدخول</button>
+                <button class="btn btn-primary" id="signupBtn">ابدأ مجاناً</button>
+                <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+                    <span class="sun-icon">☀️</span>
+                    <span class="moon-icon">🌙</span>
+                </button>
+            </div>
+
+            <button class="mobile-toggle" id="mobileToggle" aria-label="القائمة">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-bg">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </div>
+        
+        <div class="container hero-content">
+            <div class="hero-text">
+                <div class="badge animate-fadeInUp">
+                    <span>🔥 المنصة الأولى للرسائل السرية في العالم العربي</span>
+                </div>
+                
+                <h1 class="hero-title animate-fadeInUp delay-1">
+                    أرسل ما تريد قوله
+                    <br>
+                    <span class="gradient-text">بالطريقة التي تريدها</span>
+                </h1>
+                
+                <p class="hero-subtitle animate-fadeInUp delay-2">
+                    منصة متكاملة لإرسال الرسائل السرية والمجهولة مع خيارات 
+                    متعددة للهوية والخصوصية. وثق نفسك، رسالتك آمنة معنا.
+                </p>
+
+                <div class="hero-actions animate-fadeInUp delay-3">
+                    <button class="btn btn-primary btn-lg" id="getStartedBtn">
+                        <span>ابدأ الآن مجاناً</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-outline btn-lg" id="demoBtn">
+                        <span>شاهد الفيديو</span>
+                        <span class="play-icon">▶️</span>
+                    </button>
+                </div>
+
+                <div class="hero-stats animate-fadeInUp delay-4">
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="150000">0</span>+
+                        <span class="stat-label">مستخدم نشط</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="2000000">0</span>+
+                        <span class="stat-label">رسالة مرسلة</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="50">0</span>+
+                        <span class="stat-label">دولة عربية</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-visual animate-fadeInLeft delay-2">
+                <div class="phone-mockup">
+                    <div class="phone-screen">
+                        <div class="app-header">
+                            <div class="user-avatar">👤</div>
+                            <div class="user-info">
+                                <h3>أحمد محمد</h3>
+                                <span>@ahmed_m</span>
+                            </div>
+                        </div>
+                        
+                        <div class="message-preview">
+                            <div class="message-card secret-message">
+                                <div class="message-sender">
+                                    <span class="anonymous-badge">🤫 مجهول</span>
+                                </div>
+                                <p class="message-text">"أنت شخص رائع حقاً، لا تتغير أبداً ❤️"</p>
+                                <div class="message-time">منذ 5 دقائق</div>
+                            </div>
+                            
+                            <div class="message-card secret-message">
+                                <div class="message-sender">
+                                    <span class="alias-badge">🎭 سري</span>
+                                </div>
+                                <p class="message-text">"رأيك فيا مهم جداً لي..."</p>
+                                <div class="message-time">منذ ساعة</div>
+                            </div>
+                            
+                            <div class="new-message-hint">
+                                <span>📩 لديك 3 رسائل جديدة!</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="phone-notch"></div>
+                </div>
+                
+                <div class="floating-elements">
+                    <div class="float-card float-1">
+                        <span>🔐</span>
+                        <p>تشفير من طرف إلى طرف</p>
+                    </div>
+                    <div class="float-card float-2">
+                        <span>⏱️</span>
+                        <p>رسائل ذاتية التدمير</p>
+                    </div>
+                    <div class="float-card float-3">
+                        <span>🎭</span>
+                        <p>تحكم كامل في الهوية</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">المميزات</span>
+                <h2 class="section-title">لماذا مستخبي؟</h2>
+                <p class="section-subtitle">منصة متكاملة بكل ما تحتاجه للتواصل السري والآمن</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- Feature 1 -->
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-icon">
+                        <span>👤</span>
+                    </div>
+                    <h3>إرسال بدون حساب</h3>
+                    <p>المرسل لا يحتاج لتسجيل حساب. فقط افتح الرابط وأرسل رسالتك سراً.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-icon">
+                        <span>🔐</span>
+                    </div>
+                    <h3>مستويات السرية</h3>
+                    <p>اختر بين مجهول تماماً، اسم مستعار، أو إظهار هويتك. أنت تتحكم.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-icon">
+                        <span>🔥</span>
+                    </div>
+                    <h3>رسائل ذاتية التدمير</h3>
+                    <p>رسائل تختفي بعد فتحها أو بعد وقت محدد. خصوصية تامة.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-icon">
+                        <span>🖼️</span>
+                    </div>
+                    <h3>وسائط متعددة</h3>
+                    <p>أرسل نص، صور، فيديو، وصوت. لا حدود للإبداع.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-icon">
+                        <span>↩️</span>
+                    </div>
+                    <h3>ردود مجهولة</h3>
+                    <p>رد على المرسل مع الحفاظ على هويتك أو إظهارها. اختيارك.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
+                    <div class="feature-icon">
+                        <span>🛡️</span>
+                    </div>
+                    <h3>حماية AI</h3>
+                    <p>نظام ذكي لفحص المحتوى ومنع التنمر والإساءة.</p>
+                </div>
+
+                <!-- Feature 7 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="600">
+                    <div class="feature-icon">
+                        <span>📊</span>
+                    </div>
+                    <h3>تحليلات ذكية</h3>
+                    <p>اعرف تفاعل رسائلك دون كشف هوية المرسلين.</p>
+                </div>
+
+                <!-- Feature 8 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="700">
+                    <div class="feature-icon">
+                        <span>📱</span>
+                    </div>
+                    <h3>PWA متوافق</h3>
+                    <p>استخدم المنصة كتطبيق على هاتفك. تجربة سلسة.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">كيف يعمل</span>
+                <h2 class="section-title">بخطوات بسيطة</h2>
+                <p class="section-subtitle">ابدأ استقبال الرسائل السرية في دقائق</p>
+            </div>
+
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">📝</div>
+                    <h3>أنشئ حسابك</h3>
+                    <p>سجل باسم المستخدم الخاص واحصل على رابطك الفريد</p>
+                </div>
+
+                <div class="step-connector">
+                    <svg width="100" height="20" viewBox="0 0 100 20">
+                        <path d="M0 10 H90 M85 5 L95 10 L85 15" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">📤</div>
+                    <h3>شارك رابطك</h3>
+                    <p>انشر رابطك في السوشيال ميديا ولي receive رسائل</p>
+                </div>
+
+                <div class="step-connector">
+                    <svg width="100" height="20" viewBox="0 0 100 20">
+                        <path d="M0 10 H90 M85 5 L95 10 L85 15" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">📬</div>
+                    <h3>استقبل الرسائل</h3>
+                    <p>اقرأ رسائلك السرية وتفاعل معها بأمان</p>
+                </div>
+            </div>
+
+            <div class="demo-link-section">
+                <div class="demo-link-card">
+                    <span class="demo-url">mstkhby.com/<strong>اسمك</strong></span>
+                    <p>هذا هو رابطك الشخصي الذي ستشاركه مع الجميع</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Privacy Levels Section -->
+    <section class="privacy-levels">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">مستويات السرية</span>
+                <h2 class="section-title">اختر مستوى سريتك</h2>
+                <p class="section-subtitle">كل رسالة، كل اختيار</p>
+            </div>
+
+            <div class="levels-grid">
+                <div class="level-card level-anonymous">
+                    <div class="level-badge">المستوى 1</div>
+                    <div class="level-icon">🔐</div>
+                    <h3>مجهول تماماً</h3>
+                    <p>المستلم لا يرى أي معلومات تعريفية عنك</p>
+                    <ul class="level-features">
+                        <li>✅ بدون اسم</li>
+                        <li>✅ بدون صورة</li>
+                        <li>✅ بدون أي بيانات</li>
+                    </ul>
+                </div>
+
+                <div class="level-card level-alias popular">
+                    <div class="popular-badge">الأكثر شعبية</div>
+                    <div class="level-badge">المستوى 2</div>
+                    <div class="level-icon">🎭</div>
+                    <h3>اسم مستعار</h3>
+                    <p>يظهر الاسم المستعار فقط للمستلم</p>
+                    <ul class="level-features">
+                        <li>✅ اسم مستعار</li>
+                        <li>✅ بدون صورة حقيقية</li>
+                        <li>✅ هوية جزئية</li>
+                    </ul>
+                </div>
+
+                <div class="level-card level-known">
+                    <div class="level-badge">المستوى 3</div>
+                    <div class="level-icon">👤</div>
+                    <h3>معروف</h3>
+                    <p>يظهر اسم حسابك وصورتك للمستلم</p>
+                    <ul class="level-features">
+                        <li>✅ اسم الحساب</li>
+                        <li>✅ الصورة الشخصية</li>
+                        <li>✅ هوية كاملة</li>
+                    </ul>
+                </div>
+
+                <div class="level-card level-reveal">
+                    <div class="level-badge">المستوى 4</div>
+                    <div class="level-icon">👁️</div>
+                    <h3>اكشف لاحقاً</h3>
+                    <p>مجهول الآن، واختر كشف هويتك لاحقاً</p>
+                    <ul class="level-features">
+                        <li>✅ مجهول في البداية</li>
+                        <li>✅ خيار الكشف لاحقاً</li>
+                        <li>✅ مفاجأة للمستلم</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">الأسعار</span>
+                <h2 class="section-title">اختر خطتك</h2>
+                <p class="section-subtitle">ابدأ مجاناً، ترقى عندما تحتاج</p>
+            </div>
+
+            <div class="pricing-grid">
+                <!-- Free Plan -->
+                <div class="pricing-card">
+                    <div class="plan-header">
+                        <h3>مجاني</h3>
+                        <div class="plan-price">
+                            <span class="price">0</span>
+                            <span class="currency">ر.س/شهر</span>
+                        </div>
+                    </div>
+                    <ul class="plan-features">
+                        <li>✅ رابط شخصي واحد</li>
+                        <li>✅ رسائل نصية غير محدودة</li>
+                        <li>✅ صور (حد أقصى 5/يوم)</li>
+                        <li>✅ وضع مجهول</li>
+                        <li>✅ حذف وحظر</li>
+                        <li>❌ فيديو</li>
+                        <li>❌ تحليلات</li>
+                        <li>❌ روابط متعددة</li>
+                    </ul>
+                    <button class="btn btn-outline btn-block">ابدأ مجاناً</button>
+                </div>
+
+                <!-- Premium Plan -->
+                <div class="pricing-card featured">
+                    <div class="popular-tag">الأكثر شعبية</div>
+                    <div class="plan-header">
+                        <h3>بريميوم</h3>
+                        <div class="plan-price">
+                            <span class="price">29</span>
+                            <span class="currency">ر.س/شهر</span>
+                        </div>
+                    </div>
+                    <ul class="plan-features">
+                        <li>✅ كل مميزات المجاني</li>
+                        <li>✅ فيديو حتى 30 ثانية</li>
+                        <li>✅ روابط متعددة</li>
+                        <li>✅ تحليلات متقدمة</li>
+                        <li>✅ رسائل مؤقتة</li>
+                        <li>✅ themes مخصصة</li>
+                        <li>✅ بدون إعلانات</li>
+                        <li>✅ دعم أولوية</li>
+                    </ul>
+                    <button class="btn btn-primary btn-block">ترقية الآن</button>
+                </div>
+
+                <!-- Creator Plan -->
+                <div class="pricing-card">
+                    <div class="plan-header">
+                        <h3>منشئ محتوى</h3>
+                        <div class="plan-price">
+                            <span class="price">79</span>
+                            <span class="currency">ر.س/شهر</span>
+                        </div>
+                    </div>
+                    <ul class="plan-features">
+                        <li>✅ كل مميزات البريميوم</li>
+                        <li>✅ شارة موثق ✓</li>
+                        <li>✅ inbox غير محدود</li>
+                        <li>✅ AI moderation متقدم</li>
+                        <li>✅ Story Cards</li>
+                        <li>✅ Analytics API</li>
+                        <li>✅ حماية Spam قوية</li>
+                        <li>✅ مدير حساب خاص</li>
+                    </ul>
+                    <button class="btn btn-outline btn-block">تواصل معنا</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Premium Features Section -->
+    <section class="premium-features" id="premium">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">مميزات متقدمة</span>
+                <h2 class="section-title">ميزات للمحترفين والمشاهير</h2>
+                <p class="section-subtitle">احصل على المزيد من منصة مستخبي</p>
+            </div>
+
+            <!-- Verification Tiers -->
+            <div class="verification-section">
+                <h3 class="subsection-title">🏆 حسابات موثقة</h3>
+                <p class="subsection-desc">كن شخصية موثقة واحصل على مزيد من الثقة والمتابعين</p>
+
+                <div class="verification-tiers">
+                    <div class="tier-card">
+                        <div class="tier-icon basic">✓</div>
+                        <h4>موثق أساسي</h4>
+                        <ul class="tier-features">
+                            <li>شارة موثق ✓ زرقاء</li>
+                            <li>أولوية في البحث</li>
+                            <li>دعم فني متقدم</li>
+                        </ul>
+                        <button class="btn btn-outline" onclick="window.verificationService?.showApplicationForm('basic')">
+                            اطلب التحقق الآن
+                        </button>
+                    </div>
+
+                    <div class="tier-card featured">
+                        <div class="popular-badge">الأكثر طلباً</div>
+                        <div class="tier-icon influencer">⭐</div>
+                        <h4>مؤثر موثق</h4>
+                        <ul class="tier-features">
+                            <li>كل مميزات الأساسي</li>
+                            <li>رابط مخصص قصير (mstkh.by/اسمك)</li>
+                            <li>Analytics API مجاني</li>
+                            <li>Story Cards غير محدودة</li>
+                            <li>حماية Spam متقدمة</li>
+                        </ul>
+                        <button class="btn btn-primary" onclick="window.verificationService?.showApplicationForm('influencer')">
+                            اطلب كمؤثر
+                        </button>
+                    </div>
+
+                    <div class="tier-card">
+                        <div class="tier-icon celebrity">👑</div>
+                        <h4>مشهور موثق</h4>
+                        <ul class="tier-features">
+                            <li>كل مميزات المؤثر</li>
+                            <li>إيرادات من الرسائل (Tips)</li>
+                            <li>تخصيص كامل للملف الشخصي</li>
+                            <li>دعم VIP على مدار الساعة</li>
+                            <li>شراكات مع المنصة</li>
+                        </ul>
+                        <button class="btn btn-outline" onclick="window.verificationService?.showApplicationForm('celebrity')">
+                            تواصل معنا
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Story Cards Showcase -->
+            <div class="story-cards-section">
+                <h3 class="subsection-title">🎴 Story Cards احترافية</h3>
+                <p class="subsection-desc">شارك رسائلك الجميلة كبطاقات جذابة على السوشيال ميديا</p>
+
+                <div class="story-cards-preview">
+                    <div class="card-template-option" data-template="classic">
+                        <div class="template-preview classic-preview"></div>
+                        <span>كلاسيك</span>
+                    </div>
+                    <div class="card-template-option" data-template="modern">
+                        <div class="template-preview modern-preview"></div>
+                        <span>عصري</span>
+                    </div>
+                    <div class="card-template-option" data-template="minimal">
+                        <div class="template-preview minimal-preview"></div>
+                        <span>بسيط</span>
+                    </div>
+                    <div class="card-template-option premium-only" data-template="gold">
+                        <div class="template-preview gold-preview"></div>
+                        <span>ذهبي 👑</span>
+                        <span class="premium-badge">بريميوم+</span>
+                    </div>
+                </div>
+
+                <div class="story-cards-features">
+                    <div class="feature-item">
+                        <span class="feature-icon">📱</span>
+                        <div>
+                            <strong>متوافق مع جميع المنصات</strong>
+                            <p>Instagram, Twitter, Facebook, Snapchat, TikTok</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🎨</span>
+                        <div>
+                            <strong>+6 قوالب مختلفة</strong>
+                            <p>اختر القالب الذي يناسب أسلوبك</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">⚡</span>
+                        <div>
+                            <strong>إنشاء فوري</strong>
+                            <p>أنشئ بطاقتك في ثوانٍ وشاركها مباشرة</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🔗</span>
+                        <div>
+                            <strong>QR Code مدمج</strong>
+                            <p>ضمن السهل الوصول لملفك الشخصي</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-lg center-btn" onclick="window.storyCardsService?.showPreview({content: 'أنت شخص رائع حقاً، لا تتغير أبداً ❤️', identity: 'anonymous', recipientName: 'demo'})">
+                    🎨 جرب إنشاء Story Card مجاناً
+                </button>
+            </div>
+
+            <!-- Analytics Preview -->
+            <div class="analytics-section">
+                <h3 class="subsection-title">📊 تحليلات متقدمة</h3>
+                <p class="subsection-desc">اعرف المزيد عن تفاعل جمهورك مع رسائلك</p>
+
+                <div class="analytics-preview-grid">
+                    <div class="analytics-mockup">
+                        <h4>إحصائيات هذا الأسبوع</h4>
+                        <div class="stats-row">
+                            <div class="mock-stat highlight">
+                                <span class="value">1,247</span>
+                                <span class="label">رسالة مستلمة</span>
+                                <span class="trend up">↑ 12%</span>
+                            </div>
+                            <div class="mock-stat">
+                                <span class="value">8,934</span>
+                                <span class="label">تفاعل</span>
+                                <span class="trend up">↑ 23%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-placeholder">
+                            <div class="bar-chart">
+                                <div class="bar" style="height: 60%"></div>
+                                <div class="bar" style="height: 80%"></div>
+                                <div class="bar" style="height: 45%"></div>
+                                <div class="bar" style="height: 90%"></div>
+                                <div class="bar" style="height: 70%"></div>
+                                <div class="bar" style="height: 85%"></div>
+                                <div class="bar" style="height: 55%"></div>
+                            </div>
+                            <div class="chart-labels">
+                                <span>السبت</span>
+                                <span>الأحد</span>
+                                <span>الإثنين</span>
+                                <span>الثلاثاء</span>
+                                <span>الأربعاء</span>
+                                <span>الخميس</span>
+                                <span>الجمعة</span>
+                            </div>
+                        </div>
+
+                        <div class="insights-list">
+                            <div class="insight-item">
+                                <span class="insight-icon">⏰</span>
+                                <span>أفضل وقت استلام: 8:00 م - 11:00 م</span>
+                            </div>
+                            <div class="insight-item">
+                                <span class="insight-icon">🎭</span>
+                                <span>الهوية المفضلة: مجهول (65%)</span>
+                            </div>
+                            <div class="insight-item">
+                                <span class="insight-icon">❤️</span>
+                                <span>أكثر تفاعل: أحببتها (42%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analytics-features-list">
+                        <h4>ميزات التحليلات:</h4>
+                        <ul>
+                            <li>✅ رسائل يومية/أسبوعية/شهرية</li>
+                            <li>✅ توزيع الهويات (مجهول/معروف)</li>
+                            <li>✅ أنواع المحتوى (نص/صور/فيديو)</li>
+                            <li>✅ تحليل المشاعرين (إيجابي/سلبي)</li>
+                            <li>✅ أفضل أوقات النشاط</li>
+                            <li>✅ معدل التفاعل والردود</li>
+                            <li>✅ تصدير تقارير PDF/CSV</li>
+                            <li>✅ API للمطورين (خطة Creator)</li>
+                        </ul>
+
+                        <div class="analytics-cta">
+                            <p class="premium-note">🔒 هذه الميزات متاحة لمشتركي البريميوم وما فوق</p>
+                            <button class="btn btn-primary" onclick="window.stripeService?.createCheckoutSession('premium')">
+                                ترقية لرؤية إحصائياتك
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-language Support -->
+            <div class="languages-section">
+                <h3 class="subsection-title">🌍 دعم لغات متعددة</h3>
+                <p class="subsection-desc">منصة مستخبي تدعم عدة لغات لتكون في متناول الجميع</p>
+
+                <div class="language-options">
+                    <div class="language-card active" data-lang="ar">
+                        <span class="flag">🇸🇦</span>
+                        <span class="name">العربية</span>
+                        <span class="native-name">(اللغة الافتراضية)</span>
+                        <span class="status">✅ متاحة</span>
+                    </div>
+                    <div class="language-card" data-lang="en">
+                        <span class="flag">🇬🇧</span>
+                        <span class="name">English</span>
+                        <span class="native-name">(Coming Soon)</span>
+                        <span class="status soon">🔜 قريباً</span>
+                    </div>
+                    <div class="language-card" data-lang="fr">
+                        <span class="flag">🇫🇷</span>
+                        <span class="name">Français</span>
+                        <span class="native-name">(Coming Soon)</span>
+                        <span class="status soon">🔜 قريباً</span>
+                    </div>
+                </div>
+
+                <div class="language-info">
+                    <p>💡 نعمل على دعم المزيد من اللغات! إذا كنت تريد مساعدتنا في الترجمة، <a href="#">تواصل معنا</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>جاهز تبدأ؟</h2>
+                <p>انضم لآلاف المستخدمين الذين يستخدمون مستخبي يومياً</p>
+                <div class="cta-actions">
+                    <button class="btn btn-white btn-lg" id="ctaSignupBtn">
+                        أنشئ حسابك المجاني الآن
+                    </button>
+                </div>
+                <p class="cta-note">لا يحتاج بطاقة ائتمان • إعداد في دقيقة واحدة</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="/" class="footer-logo">
+                        <span>🤫</span>
+                        <span>مستخبي</span>
+                    </a>
+                    <p>منصة الرسائل السرية والأكثر خصوصية في العالم العربي</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Twitter">𝕏</a>
+                        <a href="#" aria-label="Instagram">📷</a>
+                        <a href="#" aria-label="TikTok">🎵</a>
+                        <a href="#" aria-label="Telegram">✈️</a>
+                    </div>
+                </div>
+
+                <div class="footer-links">
+                    <h4>المنصة</h4>
+                    <ul>
+                        <li><a href="#">الرئيسية</a></li>
+                        <li><a href="#">المميزات</a></li>
+                        <li><a href="#">الأسعار</a></li>
+                        <li><a href="#">API</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4>الدعم</h4>
+                    <ul>
+                        <li><a href="#">مركز المساعدة</a></li>
+                        <li><a href="#">تواصل معنا</a></li>
+                        <li><a href="#">الأسئلة الشائعة</a></li>
+                        <li><a href="#">حالة الخدمة</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4>قانوني</h4>
+                    <ul>
+                        <li><a href="#">سياسة الخصوصية</a></li>
+                        <li><a href="#">شروط الاستخدام</a></li>
+                        <li><a href="#">سياسة الاحتفاظ بالبيانات</a></li>
+                        <li><a href="#">DMCA</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 مستخبي (Mstkhby). جميع الحقوق محفوظة.</p>
+                <p>صُنع بـ ❤️ للعالم العربي</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal auth-modal">
+            <button class="modal-close" id="closeAuthModal">&times;</button>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">تسجيل الدخول</button>
+                <button class="auth-tab" data-tab="signup">حساب جديد</button>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form" id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">البريد الإلكتروني</label>
+                    <input type="email" id="loginEmail" placeholder="example@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">كلمة المرور</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">تسجيل الدخول</button>
+                <div class="auth-divider">
+                    <span>أو</span>
+                </div>
+                <div class="social-auth">
+                    <button type="button" class="btn btn-social google-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Google
+                    </button>
+                    <button type="button" class="btn btn-social apple-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                        </svg>
+                        Apple
+                    </button>
+                </div>
+                <a href="#" class="forgot-password">نسيت كلمة المرور؟</a>
+            </form>
+
+            <!-- Signup Form -->
+            <form class="auth-form hidden" id="signupForm">
+                <div class="form-group">
+                    <label for="signupName">الاسم المعروض</label>
+                    <input type="text" id="signupName" placeholder="محمد أحمد" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupUsername">اسم المستخدم</label>
+                    <input type="text" id="signupUsername" placeholder="mohamed_123" required>
+                    <small class="form-hint">mstkhby.com/mohamed_123</small>
+                </div>
+                <div class="form-group">
+                    <label for="signupEmail">البريد الإلكتروني</label>
+                    <input type="email" id="signupEmail" placeholder="example@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">كلمة المرور</label>
+                    <input type="password" id="signupPassword" placeholder="••••••••" required>
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">إنشاء حساب</button>
+                <p class="terms-agreement">
+                    بإنشاء حساب، أنت توافق على 
+                    <a href="#">شروط الاستخدام</a> و 
+                    <a href="#">سياسة الخصوصية</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Send Message Modal (for public link) -->
+    <div class="modal-overlay" id="sendMessageModal">
+        <div class="modal send-message-modal">
+            <button class="modal-close" id="closeSendMessageModal">&times;</button>
+            
+            <div class="send-header">
+                <div class="recipient-info">
+                    <div class="recipient-avatar" id="recipientAvatar">👤</div>
+                    <div>
+                        <h3>أرسل رسالة سرية لـ</h3>
+                        <span class="recipient-name" id="recipientName">@username</span>
+                    </div>
+                </div>
+            </div>
+
+            <form class="send-form" id="sendMessageForm">
+                <!-- Message Type Selection -->
+                <div class="message-type-selector">
+                    <label class="type-option active">
+                        <input type="radio" name="messageType" value="text" checked>
+                        <span class="type-icon">📝</span>
+                        <span>نص</span>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="messageType" value="image">
+                        <span class="type-icon">📷</span>
+                        <span>صورة</span>
+                    </label>
+                    <label class="type-option">
+                        <input type="radio" name="messageType" value="video">
+                        <span class="type-icon">🎥</span>
+                        <span>فيديو</span>
+                    </label>
+                </div>
+
+                <!-- Identity Selection -->
+                <div class="identity-selector">
+                    <label>هويتك:</label>
+                    <div class="identity-options">
+                        <label class="identity-option">
+                            <input type="radio" name="identity" value="anonymous" checked>
+                            <span class="identity-icon">🔐</span>
+                            <span>مجهول</span>
+                        </label>
+                        <label class="identity-option">
+                            <input type="radio" name="identity" value="alias">
+                            <span class="identity-icon">🎭</span>
+                            <span>اسم مستعار</span>
+                        </label>
+                        <label class="identity-option">
+                            <input type="radio" name="identity" value="reveal">
+                            <span class="identity-icon">👤</span>
+                            <span>إظهار اسمي</span>
+                        </label>
+                    </div>
+                    <input type="text" class="alias-input hidden" id="aliasInput" placeholder="ادخل اسمك المستعار...">
+                </div>
+
+                <!-- Self-destruct Options -->
+                <div class="destruct-options">
+                    <label>نوع الرسالة:</label>
+                    <select id="destructOption">
+                        <option value="normal">عادية</option>
+                        <option value="one-view">👁️ مشاهدة واحدة فقط</option>
+                        <option value="10sec">⏱️ تختفي بعد 10 ثوانٍ</option>
+                        <option value="30sec">⏱️ تختفي بعد 30 ثانية</option>
+                        <option value="1hour">⏱️ تختفي بعد ساعة</option>
+                        <option value="24hours">📅 تختفي بعد 24 ساعة</option>
+                    </select>
+                </div>
+
+                <!-- Message Content -->
+                <div class="form-group">
+                    <textarea id="messageContent" placeholder="اكتب رسالتك هنا... 🤫" rows="4" required></textarea>
+                    <div class="media-upload hidden" id="mediaUpload">
+                        <input type="file" id="mediaFile" accept="image/*,video/*">
+                        <label for="mediaFile" class="upload-btn">
+                            <span>📎 ارفق ملف</span>
+                        </label>
+                        <div class="preview" id="mediaPreview"></div>
+                    </div>
+                </div>
+
+                <!-- Safety Notice -->
+                <div class="safety-notice">
+                    <span>🛡️</span>
+                    <p>رسائلك يتم فحصها بواسطة AI لضمان سلامة المنصة. نحترم خصوصيتك.</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <span>🔐 إرسال رسالة سرية</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/messages.js"></script>
+    <script src="js/storage.js"></script>
+    
+    <!-- Premium Features Scripts -->
+    <script src="js/stripe.js"></script>
+    <script src="js/verification.js"></script>
+    <script src="js/story-cards.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/i18n.js"></script>
+    
+    <!-- Main App (must be last) -->
+    <script src="js/app.js"></script>
+</body>
+</html>

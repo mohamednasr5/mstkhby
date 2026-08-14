@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الأدمن - مستخبي</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+    <!-- Admin Layout -->
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="sidebar-header">
+                <a href="/" class="admin-logo">
+                    <span>🤫</span>
+                    <span>مستخبي</span>
+                </a>
+                <span class="admin-badge">لوحة التحكم</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                            <span class="nav-icon">📊</span>
+                            <span>لوحة المعلومات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#users" class="nav-item" data-page="users">
+                            <span class="nav-icon">👥</span>
+                            <span>المستخدمون</span>
+                            <span class="nav-badge">150K+</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#messages" class="nav-item" data-page="messages">
+                            <span class="nav-icon">✉️</span>
+                            <span>الرسائل</span>
+                            <span class="nav-badge warning">2M+</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#reports" class="nav-item" data-page="reports">
+                            <span class="nav-icon">🚩</span>
+                            <span>البلاغات</span>
+                            <span class="nav-badge danger">15</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#moderation" class="nav-item" data-page="moderation">
+                            <span class="nav-icon">🛡️</span>
+                            <span>المراجعة</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#analytics" class="nav-item" data-page="analytics">
+                            <span class="nav-icon">📈</span>
+                            <span>التحليلات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#settings" class="nav-item" data-page="settings">
+                            <span class="nav-icon">⚙️</span>
+                            <span>الإعدادات</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/" class="back-to-site">
+                    <span>↗️</span>
+                    <span>العودة للموقع</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Top Bar -->
+            <header class="admin-header">
+                <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+                
+                <div class="search-bar">
+                    <input type="text" placeholder="بحث في لوحة التحكم...">
+                    <span class="search-icon">🔍</span>
+                </div>
+
+                <div class="header-actions">
+                    <button class="notification-btn">
+                        <span>🔔</span>
+                        <span class="notif-count">5</span>
+                    </button>
+                    
+                    <div class="admin-profile">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=0ea5e9&color=fff" alt="Admin">
+                        <span>مدير النظام</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Page -->
+            <section class="admin-page active" id="page-dashboard">
+                <div class="page-header">
+                    <h1>لوحة المعلومات</h1>
+                    <p>نظرة عامة على منصة مستخبي</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon users">👥</div>
+                        <div class="stat-info">
+                            <h3 id="totalUsers">150,000</h3>
+                            <p>إجمالي المستخدمين</p>
+                        </div>
+                        <div class="stat-trend up">
+                            <span>↑ 12.5%</span>
+                            <small>من الشهر الماضي</small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon messages">✉️</div>
+                        <div class="stat-info">
+                            <h3 id="totalMessages">2,000,000</h3>
+                            <p>رسالة مرسلة</p>
+                        </div>
+                        <div class="stat-trend up">
+                            <span>↑ 8.3%</span>
+                            <small>من الشهر الماضي</small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon active">🟢</div>
+                        <div class="stat-info">
+                            <h3 id="activeUsers">12,500</h3>
+                            <p>مستخدم نشط اليوم</p>
+                        </div>
+                        <div class="stat-trend up">
+                            <span>↑ 5.2%</span>
+                            <small>من أمس</small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon premium">👑</div>
+                        <div class="stat-info">
+                            <h3 id="premiumUsers">2,500</h3>
+                            <p>مشترك بريميوم</p>
+                        </div>
+                        <div class="stat-trend up">
+                            <span>↑ 18.7%</span>
+                            <small>من الشهر الماضي</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3>نمو المستخدمين</h3>
+                        <div class="chart-placeholder" id="userGrowthChart">
+                            <!-- Chart will be rendered here -->
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>الرسائل اليومية</h3>
+                        <div class="chart-placeholder" id="dailyMessagesChart">
+                            <!-- Chart will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="activity-section">
+                    <h3>النشاط الأخير</h3>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <span class="activity-icon new-user">👤</span>
+                            <div class="activity-details">
+                                <strong>مستخدم جديد مسجل</strong>
+                                <p>ahmed_king انضم للمنصة</p>
+                            </div>
+                            <span class="activity-time">منذ دقيقتين</span>
+                        </div>
+
+                        <div class="activity-item">
+                            <span class="activity-icon new-message">📩</span>
+                            <div class="activity-details">
+                                <strong>رسالة جديدة</strong>
+                                <p>50 رسالة في آخر ساعة</p>
+                            </div>
+                            <span class="activity-time">منذ 5 دقائق</span>
+                        </div>
+
+                        <div class="activity-item">
+                            <span class="activity-icon report">🚩</span>
+                            <div class="activity-details">
+                                <strong>بلاغ جديد</strong>
+                                <p>محتوى مشبوه يحتاج مراجعة</p>
+                            </div>
+                            <span class="activity-time">منذ 10 دقائق</span>
+                        </div>
+
+                        <div class="activity-item">
+                            <span class="activity-icon upgrade">⬆️</span>
+                            <div class="activity-details">
+                                <strong>ترقية حساب</strong>
+                                <p>sara_art رقى لبريميوم</p>
+                            </div>
+                            <span class="activity-time">منذ 15 دقيقة</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users Page -->
+            <section class="admin-page" id="page-users">
+                <div class="page-header">
+                    <h1>إدارة المستخدمين</h1>
+                    <div class="page-actions">
+                        <div class="search-box">
+                            <input type="text" placeholder="بحث بالاسم أو البريد..." id="userSearch">
+                        </div>
+                        <select id="userFilter">
+                            <option value="all">كل المستخدمين</option>
+                            <option value="active">نشط</option>
+                            <option value="banned">محظور</option>
+                            <option value="premium">بريميوم</option>
+                            <option value="new">جديد (آخر 7 أيام)</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="exportUsers()">📥 تصدير</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>المستخدم</th>
+                                <th>البريد</th>
+                                <th>الحالة</th>
+                                <th>الخطة</th>
+                                <th>الرسائل</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button class="pagination-btn" disabled>السابق</button>
+                    <span class="page-info">صفحة 1 من 100</span>
+                    <button class="pagination-btn">التالي</button>
+                </div>
+            </section>
+
+            <!-- Messages Page -->
+            <section class="admin-page" id="page-messages">
+                <div class="page-header">
+                    <h1>إدارة الرسائل</h1>
+                    <div class="page-actions">
+                        <div class="search-box">
+                            <input type="text" placeholder="بحث في الرسائل..." id="messageSearch">
+                        </div>
+                        <select id="messageFilter">
+                            <option value="all">كل الرسائل</option>
+                            <option value="reported">مُبلغ عنها</option>
+                            <option value="flagged">مؤشرة</option>
+                            <option value="media">تحتوي وسائط</option>
+                            <option value="self-destruct">ذاتية التدمير</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="messages-view-toggle">
+                    <button class="toggle-btn active" onclick="setMessagesView('list')">📋 قائمة</button>
+                    <button class="toggle-btn" onclick="setMessagesView('grid')">⊞ شبكة</button>
+                </div>
+
+                <div class="messages-list" id="adminMessagesList">
+                    <!-- Messages will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Reports Page -->
+            <section class="admin-page" id="page-reports">
+                <div class="page-header">
+                    <h1>البلاغات</h1>
+                    <div class="page-actions">
+                        <select id="reportStatusFilter">
+                            <option value="pending">قيد الانتظار (15)</option>
+                            <option value="resolved">تم الحل</option>
+                            <option value="dismissed">مرفوض</option>
+                        </select>
+                        <select id="reportTypeFilter">
+                            <option value="all">كل الأنواع</option>
+                            <option value="spam">سبام</option>
+                            <option value="harassment">تحرش</option>
+                            <option value="inappropriate">محتوى غير لائق</option>
+                            <option value="threat">تهديد</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="reports-list" id="reportsList">
+                    <!-- Reports will be loaded here -->
+                    <div class="report-card urgent">
+                        <div class="report-header">
+                            <span class="report-id">#REP-001234</span>
+                            <span class="report-status pending">قيد الانتظار</span>
+                            <span class="report-urgency high">عاجل</span>
+                        </div>
+                        <div class="report-content">
+                            <p><strong>نوع البلاغ:</strong> تحرش وإساءة</p>
+                            <p><strong>الرسالة:</strong> "أنت شخص سيء ولا يستحق الحياة..."</p>
+                            <p><strong>المُبلغ:</strong> user_12345</p>
+                            <p><strong>المُبلغ عنه:</strong> anonymous_fingerprint_abc</p>
+                        </div>
+                        <div class="report-actions">
+                            <button class="btn btn-success btn-sm" onclick="handleReport('resolve', 'REP-001234')">✅ حل</button>
+                            <button class="btn btn-danger btn-sm" onclick="handleReport('ban', 'REP-001234')">🚫 حظر المرسل</button>
+                            <button class="btn btn-outline btn-sm" onclick="handleReport('dismiss', 'REP-001234')">❌ رفض</button>
+                        </div>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-header">
+                            <span class="report-id">#REP-001235</span>
+                            <span class="report-status pending">قيد الانتظار</span>
+                        </div>
+                        <div class="report-content">
+                            <p><strong>نوع البلاغ:</strong> محتوى غير لائق</p>
+                            <p><strong>الرسالة:</strong> [صورة غير لائقة]</p>
+                            <p><strong>المُبلغ:</strong> user_67890</p>
+                        </div>
+                        <div class="report-actions">
+                            <button class="btn btn-success btn-sm" onclick="handleReport('resolve', 'REP-001235')">✅ حل</button>
+                            <button class="btn btn-outline btn-sm" onclick="handleReport('dismiss', 'REP-001235')">❌ رفض</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Moderation Page -->
+            <section class="admin-page" id="page-moderation">
+                <div class="page-header">
+                    <h1>مراجعة المحتوى</h1>
+                    <p>فحص المحتوى المُبلغ عنه والمشبوه تلقائياً</p>
+                </div>
+
+                <div class="moderation-filters">
+                    <button class="filter-chip active">الكل</button>
+                    <button class="filter-chip">يحتاج مراجعة AI</button>
+                    <button class="filter-chip">كلمات مفتاحية</button>
+                    <button class="filter-chip">روابط مشبوهة</button>
+                </div>
+
+                <div class="moderation-queue" id="moderationQueue">
+                    <div class="moderation-item">
+                        <div class="content-preview">
+                            <div class="sender-info">
+                                <span class="anonymous-badge">🤫 مجهول</span>
+                                <span class="time">منذ 10 دقائق</span>
+                            </div>
+                            <p class="message-text flagged">هذه الرسالة تحتوي على كلمات قد تكون مسيئة...</p>
+                            <div class="ai-analysis">
+                                <span class="ai-badge">🤖 AI Score: 72% toxic</span>
+                                <span class="flag-reason">سبب العلم: كلمات مسيئة محتملة</span>
+                            </div>
+                        </div>
+                        <div class="moderation-actions">
+                            <button class="btn btn-success btn-sm">✅ قبول</button>
+                            <button class="btn btn-warning btn-sm">🔇 تعتيم</button>
+                            <button class="btn btn-danger btn-sm">🗑️ حذف + حظر</button>
+                            <button class="btn btn-outline btn-sm">⏭️ تخطي</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Page -->
+            <section class="admin-page" id="page-analytics">
+                <div class="page-header">
+                    <h1>التحليلات</h1>
+                    <div class="date-range-picker">
+                        <input type="date" value="2024-01-01">
+                        <span>إلى</span>
+                        <input type="date" value="2024-12-31">
+                        <button class="btn btn-primary btn-sm">تحديث</button>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="analytics-card full-width">
+                        <h3>نمو المنصة</h3>
+                        <div class="big-chart" id="platformGrowthChart"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3>توزيع المستخدمين حسب الدولة</h3>
+                        <div class="chart-placeholder" id="countriesChart"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3>أنواع الرسائل</h3>
+                        <div class="chart-placeholder" id="messageTypesChart"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3>مستويات السرية المستخدمة</h3>
+                        <div class="privacy-levels-stats">
+                            <div class="level-stat">
+                                <span class="level-name">🔐 مجهول</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 65%;"></div>
+                                </div>
+                                <span class="level-percent">65%</span>
+                            </div>
+                            <div class="level-stat">
+                                <span class="level-name">🎭 مستعار</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 25%;"></div>
+                                </div>
+                                <span class="level-percent">25%</span>
+                            </div>
+                            <div class="level-stat">
+                                <span class="level-name">👤 معروف</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 8%;"></div>
+                                </div>
+                                <span class="level-percent">8%</span>
+                            </div>
+                            <div class="level-stat">
+                                <span class="level-name">👁️ اكشف لاحقاً</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 2%;"></div>
+                                </div>
+                                <span class="level-percent">2%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Page -->
+            <section class="admin-page" id="page-settings">
+                <div class="page-header">
+                    <h1>إعدادات المنصة</h1>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>⚙️ الإعدادات العامة</h3>
+                        
+                        <div class="setting-item">
+                            <label>حالة التسجيل الجديد</label>
+                            <select>
+                                <option value="open" selected>مفتوح</option>
+                                <option value="invite">بدعوة فقط</option>
+                                <option value="closed">مغلق</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>حد حجم الملف (MB)</label>
+                            <input type="number" value="50" min="1" max="200">
+                        </div>
+
+                        <div class="setting-item">
+                            <label>صارمة AI Moderation</label>
+                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+
+                        <button class="btn btn-primary">حفظ الإعدادات</button>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>🔔 إعدادات الإشعارات</h3>
+                        
+                        <div class="setting-item">
+                            <label>إشعارات البريد الإلكتروني للمدراء</label>
+                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>تنبيه عند بلاغات عاجلة</label>
+                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>تقرير يومي بالأداء</label>
+                            <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>🛡️ إعدادات الأمان</h3>
+                        
+                        <div class="setting-item">
+                            <label>المصادقة الثنائية (2FA)</label>
+                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>تسجيل الدخول IP محدد</label>
+                            <textarea placeholder="IP addresses, one per line..."></textarea>
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Rate Limiting (طلبات/دقيقة)</label>
+                            <input type="number" value="60" min="10" max="1000">
+                        </div>
+                    </div>
+
+                    <div class="settings-card danger-zone">
+                        <h3>⚠️ منطقة الخطر</h3>
+                        
+                        <div class="danger-actions">
+                            <button class="btn btn-outline" onclick="confirmDangerAction('clear-cache')">مسح الـ Cache</button>
+                            <button class="btn btn-outline" onclick="confirmDangerAction('reset-rates')">إعادة تعيين Rate Limits</button>
+                            <button class="btn btn-danger" onclick="confirmDangerAction('maintenance')">وضع الصيانة</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Message Detail Modal -->
+    <div class="modal-overlay" id="messageDetailModal">
+        <div class="modal message-detail-modal">
+            <button class="modal-close" onclick="closeModal('messageDetailModal')">&times;</button>
+            
+            <div class="detail-header">
+                <span class="message-id">#MSG-123456</span>
+                <span class="message-time">2024-01-15 14:30</span>
+            </div>
+
+            <div class="detail-sender">
+                <span class="identity-badge anonymous">🤫 مجهول</span>
+                <span>Fingerprint: abc123...</span>
+            </div>
+
+            <div class="detail-content">
+                <p>محتوى الرسالة هنا...</p>
+            </div>
+
+            <div class="detail-meta">
+                <div class="meta-item">
+                    <strong>النوع:</strong>
+                    <span>نص</span>
+                </div>
+                <div class="meta-item">
+                    <strong>الحالة:</strong>
+                    <span class="status-badge delivered">تم التسليم</span>
+                </div>
+                <div class="meta-item">
+                    <strong>AI Score:</strong>
+                    <span class="ai-score safe">95% آمن</span>
+                </div>
+            </div>
+
+            <div class="detail-actions">
+                <button class="btn btn-danger btn-sm">🗑️ حذف</button>
+                <button class="btn btn-warning btn-sm">🚩 بلاغ</button>
+                <button class="btn btn-outline btn-sm">🔍 تفاصيل المرسل</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Detail Modal -->
+    <div class="modal-overlay" id="userDetailModal">
+        <div class="modal user-detail-modal">
+            <button class="modal-close" onclick="closeModal('userDetailModal')">&times;</button>
+            
+            <div class="user-profile-header">
+                <img src="https://ui-avatars.com/api/?name=User&size=100&background=8b5cf6&color=fff" alt="User">
+                <div class="user-info">
+                    <h2>اسم المستخدم</h2>
+                    <p>@username</p>
+                    <span class="badge premium">بريميوم</span>
+                </div>
+            </div>
+
+            <div class="user-stats-grid">
+                <div class="user-stat">
+                    <strong>1,234</strong>
+                    <span>رسالة مستلمة</span>
+                </div>
+                <div class="user-stat">
+                    <strong>567</strong>
+                    <span>تفاعل</span>
+                </div>
+                <div class="user-stat">
+                    <strong>89</strong>
+                    <span>يوم نشط</span>
+                </div>
+            </div>
+
+            <div class="user-details">
+                <div class="detail-row">
+                    <span>البريد:</span>
+                    <span>user@email.com</span>
+                </div>
+                <div class="detail-row">
+                    <span>تاريخ التسجيل:</span>
+                    <span>2024-01-01</span>
+                </div>
+                <div class="detail-row">
+                    <span>آخر نشاط:</span>
+                    <span>منذ ساعتين</span>
+                </div>
+                <div class="detail-row">
+                    <span>الحالة:</span>
+                    <span class="status-active">نشط ✅</span>
+                </div>
+            </div>
+
+            <div class="user-actions">
+                <button class="btn btn-warning btn-sm">⚠️ تحذير</button>
+                <button class="btn btn-danger btn-sm">🚫 حظر</button>
+                <button class="btn btn-outline btn-sm">📧 إرسال إيميل</button>
+                <button class="btn btn-outline btn-sm">📝 تسجيلات الدخول</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/firebase-config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
