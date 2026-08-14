@@ -23,30 +23,8 @@ firebase.initializeApp(firebaseConfig);
 
 // Initialize Services
 const auth = firebase.auth();
+const database = firebase.database();  // Realtime Database (not Firestore)
 const storage = firebase.storage();
-
-// Firestore — this is the database actually used by auth.js / messages.js
-// (they call .collection().doc()...), so it must be initialized here.
-const db = firebase.firestore();
-
-// Realtime Database — used separately by payments.js / payment-new.js /
-// database-setup.js. Guarded in try/catch: if the project has no RTDB
-// instance configured, this must not stop Firestore-based auth from working.
-let database = null;
-try {
-    database = firebase.database();
-} catch (e) {
-    console.warn('⚠️ Realtime Database not available:', e.message);
-}
-
-// Firestore collection names used across auth.js / messages.js
-const collections = {
-    users: 'users',
-    usernames: 'usernames',
-    messages: 'messages',
-    reports: 'reports',
-    settings: 'settings'
-};
 
 // Initialize Analytics if available
 let analytics = null;
@@ -56,45 +34,37 @@ try {
     console.log('Analytics not available');
 }
 
-// Realtime Database References (only meaningful if `database` initialized)
-const dbRef = database ? {
+// Realtime Database References
+const dbRef = {
     users: database.ref('users'),
     messages: database.ref('messages'),
     subscriptions: database.ref('subscriptions'),
     payments: database.ref('payments'),
     reports: database.ref('reports'),
     settings: database.ref('settings')
-} : null;
+};
 
 // Helper function to get user reference
 function getUserRef(uid) {
-    return database?.ref(`users/${uid}`);
+    return database.ref(`users/${uid}`);
 }
 
 // Helper function to get user subscriptions
 function getUserSubscriptionsRef(uid) {
-    return database?.ref(`users/${uid}/subscriptions`);
+    return database.ref(`users/${uid}/subscriptions`);
 }
 
 // Helper function to get user payments
 function getUserPaymentsRef(uid) {
-    return database?.ref(`users/${uid}/payments`);
+    return database.ref(`users/${uid}/payments`);
 }
-
-// Cloudflare Worker API (api/workers/api.js), bound to the "mstkhby" R2
-// bucket — see api/workers/wrangler.toml. Deployed at:
-window.MstkhbyConfig = {
-    API_BASE_URL: 'https://mstkhby.nonm1724.workers.dev'
-};
 
 // Export for use in other modules
 window.MstkhbyFirebase = {
     config: firebaseConfig,
     auth,
-    db,            // Firestore instance — used by auth.js / messages.js
-    collections,   // Firestore collection names
-    database,      // Realtime Database instance (may be null)
-    dbRef,         // Realtime Database references (may be null)
+    database,      // Realtime Database instance
+    dbRef,         // Database references
     storage,
     analytics,
     helpers: {
@@ -104,4 +74,4 @@ window.MstkhbyFirebase = {
     }
 };
 
-console.log('🔥 Firebase initialized successfully (Firestore + Realtime DB)');
+console.log('🔥 Firebase (Realtime DB) initialized successfully');

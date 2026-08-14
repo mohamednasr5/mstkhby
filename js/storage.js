@@ -24,39 +24,6 @@ class StorageService {
             thumbnailSize: 200,
             compressionQuality: 0.8
         };
-
-        // Cloudflare Worker API base URL (see api/workers/api.js + wrangler.toml,
-        // bound to the "mstkhby" R2 bucket). Media currently uploads through
-        // Firebase Storage above; this is available for switching a given
-        // upload to the R2-backed Worker instead via uploadMediaViaWorker().
-        this.workerApiUrl = window.MstkhbyConfig?.API_BASE_URL || null;
-    }
-
-    /**
-     * Upload a file to R2 through the Cloudflare Worker
-     * (POST {workerApiUrl}/api/media/upload) instead of Firebase Storage.
-     * Requires the user to be authenticated (Bearer token).
-     */
-    async uploadMediaViaWorker(file, messageId, authToken) {
-        if (!this.workerApiUrl) {
-            throw new Error('Worker API URL غير مهيأ (window.MstkhbyConfig.API_BASE_URL)');
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-        if (messageId) formData.append('messageId', messageId);
-
-        const response = await fetch(`${this.workerApiUrl}/api/media/upload`, {
-            method: 'POST',
-            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
-            body: formData
-        });
-
-        const data = await response.json();
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || 'فشل رفع الملف عبر الـ Worker');
-        }
-        return data; // { success, key, url, type, size }
     }
 
     /**
