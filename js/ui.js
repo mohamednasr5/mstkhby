@@ -48,6 +48,8 @@ class UIManager {
             loginForm: document.getElementById('loginForm'),
             signupForm: document.getElementById('signupForm'),
             authTabs: document.querySelectorAll('.auth-tab'),
+            googleLoginBtn: document.getElementById('googleLoginBtn'),
+            googleSignupBtn: document.getElementById('googleSignupBtn'),
             
             // Send Message Modal
             sendMessageModal: document.getElementById('sendMessageModal'),
@@ -132,6 +134,19 @@ class UIManager {
             this.elements.signupForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.handleSignup(e.target);
+            });
+        }
+
+        // Google sign-in / sign-up
+        if (this.elements.googleLoginBtn) {
+            this.elements.googleLoginBtn.addEventListener('click', () => {
+                this.handleGoogleAuth(this.elements.googleLoginBtn);
+            });
+        }
+
+        if (this.elements.googleSignupBtn) {
+            this.elements.googleSignupBtn.addEventListener('click', () => {
+                this.handleGoogleAuth(this.elements.googleSignupBtn);
             });
         }
 
@@ -441,6 +456,44 @@ class UIManager {
             input.style.borderColor = isAvailable ? '#10b981' : '#ef4444';
         } catch (error) {
             console.error('Username validation error:', error);
+        }
+    }
+
+    // Handle Google sign-in / sign-up (same flow for both — Firebase
+    // creates the account automatically on first Google sign-in)
+    async handleGoogleAuth(button) {
+        const originalHTML = button.innerHTML;
+
+        try {
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner"></span> جاري التسجيل عبر Google...';
+
+            await window.authService?.signInWithGoogle();
+
+            this.showToast(
+                'تم بنجاح',
+                'مرحباً بك! تم تسجيل الدخول عبر Google 🎉',
+                'success'
+            );
+
+            this.closeModal(this.elements.authModal);
+
+            setTimeout(() => {
+                window.location.hash = '/inbox';
+            }, 500);
+
+        } catch (error) {
+            // Popup closed by the user is not a real error — no toast needed
+            if (error?.code !== 'CANCELLED') {
+                this.showToast(
+                    'خطأ في تسجيل الدخول عبر Google',
+                    error.message || 'حدث خطأ غير متوقع',
+                    'error'
+                );
+            }
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
         }
     }
 

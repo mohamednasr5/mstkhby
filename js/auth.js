@@ -367,6 +367,9 @@ class AuthService {
             'auth/too-many-requests': { message: 'محاولات كثيرة جداً، حاول لاحقاً', code: 'TOO_MANY_REQUESTS' },
             'auth/network-request-failed': { message: 'مشكلة في الاتصال بالإنترنت', code: 'NETWORK_ERROR' },
             'auth/popup-closed-by-user': { message: 'تم إلغاء تسجيل الدخول', code: 'CANCELLED' },
+            'auth/cancelled-popup-request': { message: 'تم إلغاء تسجيل الدخول', code: 'CANCELLED' },
+            'auth/popup-blocked': { message: 'المتصفح منع نافذة تسجيل الدخول، يرجى السماح بالنوافذ المنبثقة', code: 'POPUP_BLOCKED' },
+            'auth/account-exists-with-different-credential': { message: 'هذا البريد الإلكتروني مسجل بطريقة تسجيل دخول مختلفة', code: 'ACCOUNT_EXISTS' },
             'auth/invalid-credential': { message: 'بيانات الدخول غير صحيحة', code: 'INVALID_CREDENTIAL' }
         };
 
@@ -375,7 +378,9 @@ class AuthService {
             code: 'UNKNOWN_ERROR'
         };
 
-        return new Error(mappedError.message);
+        const wrapped = new Error(mappedError.message);
+        wrapped.code = mappedError.code; // e.g. 'CANCELLED' — preserved for callers
+        return wrapped;
     }
 
     // Get user by username (for public profiles)

@@ -11,13 +11,11 @@
 // Note: This would typically use ES modules syntax in production
 
 const MstkhbyAPI = {
-    // Environment configuration
-    env: {
-        FIREBASE_API_KEY: 'YOUR_FIREBASE_API_KEY',
-        FIREBASE_PROJECT_ID: 'mstkhby-app',
-        R2_BUCKET: 'mstkhby-media',
-        JWT_SECRET: 'your-jwt-secret-key',
-        ADMIN_TOKEN: 'your-admin-token'
+    // Static, non-secret defaults. Real secrets/bindings (JWT_SECRET, ADMIN_TOKEN,
+    // R2_BUCKET binding, R2_PUBLIC_URL) come from the Worker's runtime `env`
+    // (set via `wrangler secret put` / bindings in wrangler.toml), never hard-coded here.
+    config: {
+        FIREBASE_PROJECT_ID: 'mstkhby-app'
     },
 
     // CORS headers
@@ -55,7 +53,7 @@ const MstkhbyAPI = {
             }
             
             if (path.startsWith('/api/admin/')) {
-                return await this.handleAdmin(request, path);
+                return await this.handleAdmin(request, path, env);
             }
 
             if (path.startsWith('/api/users/')) {
@@ -548,19 +546,23 @@ const MstkhbyAPI = {
             return this.jsonResponse({ error: 'File too large (max 50MB)' }, 400);
         }
 
-        // Upload to R2
-        // const key = `messages/${messageId}/${Date.now()}_${file.name}`;
-        // await env.R2_BUCKET.put(key, file.stream(), {
-        //     httpMetadata: {
-        //         contentType: file.type
-        //     }
-        // });
+        // Upload to R2 (binding name "R2_BUCKET" -> bucket "mstkhby", see wrangler.toml)
+        const key = `messages/${messageId || 'general'}/${Date.now()}_${file.name}`;
 
-        // const url = `${env.R2_DOMAIN}/${key}`;
+        await env.R2_BUCKET.put(key, file.stream(), {
+            httpMetadata: {
+                contentType: file.type
+            }
+        });
+
+        // env.R2_PUBLIC_URL is the bucket's Public Development URL
+        // (https://pub-xxxx.r2.dev) or a custom domain, set in wrangler.toml [vars].
+        const url = `${env.R2_PUBLIC_URL}/${key}`;
 
         return this.jsonResponse({
             success: true,
-            url: `https://cdn.mstkhby.com/${key}`, // Would be actual R2 URL
+            key,
+            url,
             type: file.type.startsWith('image/') ? 'image' : 'video',
             size: file.size
         }, 201);
@@ -571,25 +573,31 @@ const MstkhbyAPI = {
         const fileName = url.searchParams.get('fileName');
         const fileType = url.searchParams.get('fileType');
 
-        // Generate presigned URL for direct upload to R2
-        // const key = `uploads/${user.id}/${Date.now()}_${fileName}`;
-        // const presignedUrl = await env.R2_BUCKET.createPresignedUrl({
-        //     method: 'PUT',
-        //     key,
-        //     contentType: fileType,
-        //     expiresIn: 3600
-        // });
+        if (!fileName) {
+            return this.jsonResponse({ error: 'fileName is required' }, 400);
+        }
+
+        // R2's S3-compatible API supports presigned URLs, but the R2 bucket
+        // binding used elsewhere in this file (env.R2_BUCKET) does not expose
+        // createPresignedUrl directly from a Worker. Presigned PUT URLs require
+        // signing against the S3 API endpoint (see bucket Settings -> S3 API)
+        // with an R2 Access Key ID/Secret, which should be stored as Worker
+        // secrets (R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY) rather than here.
+        // Until those secrets are configured, uploads go through
+        // POST /api/media/upload instead, which streams the file straight to
+        // the R2_BUCKET binding above.
+        const key = `uploads/${user.id}/${Date.now()}_${fileName}`;
 
         return this.jsonResponse({
-            success: true,
-            presignedUrl: '', // Actual presigned URL
-            key: '' // File key after upload
-        });
+            success: false,
+            error: 'Presigned uploads are not configured on this Worker. Use POST /api/media/upload instead.',
+            key
+        }, 501);
     },
 
     async deleteMedia(mediaId, user, env) {
-        // Delete from R2
-        // await env.R2_BUCKET.delete(mediaId);
+        // mediaId is the R2 object key (e.g. "messages/<id>/<timestamp>_<name>")
+        await env.R2_BUCKET.delete(mediaId);
 
         return this.jsonResponse({
             success: true,
@@ -599,9 +607,9 @@ const MstkhbyAPI = {
 
     // ==================== ADMIN ENDPOINTS ====================
 
-    async handleAdmin(request, path) {
+    async handleAdmin(request, path, env) {
         // Verify admin access
-        const isAdmin = await this.authenticateAdmin(request);
+        const isAdmin = await this.authenticateAdmin(request, env);
         if (!isAdmin) {
             return this.jsonResponse({ error: 'Admin access required' }, 403);
         }
@@ -863,10 +871,10 @@ const MstkhbyAPI = {
         return this.verifyToken(token);
     },
 
-    async authenticateAdmin(request) {
+    async authenticateAdmin(request, env) {
         const adminToken = request.headers.get('X-Admin-Token');
-        
-        if (adminToken === this.env.ADMIN_TOKEN) {
+
+        if (adminToken && env?.ADMIN_TOKEN && adminToken === env.ADMIN_TOKEN) {
             return true;
         }
 

@@ -1,0 +1,21 @@
+name = "mstkhby"
+main = "api.js"
+compatibility_date = "2026-08-14"
+
+# R2 bucket binding — matches the "mstkhby" bucket shown in the
+# Cloudflare R2 dashboard (Workers & Pages -> mstkhby -> Bindings).
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "mstkhby"
+
+# Non-secret variables. R2_PUBLIC_URL is the bucket's
+# "Public Development URL" from R2 -> mstkhby -> Settings -> General.
+# Swap it for a custom domain once one is attached (Settings -> Custom Domains).
+[vars]
+R2_PUBLIC_URL = "https://pub-ea1d6029f479415cb6622f43a17a794f.r2.dev"
+FIREBASE_PROJECT_ID = "mstkhby-app"
+
+# Secrets — do NOT put real values here. Set them with:
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put ADMIN_TOKEN
+#   wrangler secret put FIREBASE_API_KEY
