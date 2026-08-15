@@ -496,7 +496,7 @@ class MessagesService {
                 throw new Error('غير مصرح');
             }
 
-            if (message.identity !== 'reveal') {
+            if (message.identity !== 'reveal_later') {
                 throw new Error('هذه الرسالة لا تدعم كشف الهوية');
             }
 

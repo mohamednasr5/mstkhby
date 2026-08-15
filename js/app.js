@@ -239,19 +239,16 @@ class MstkhbyApp {
 
     /**
      * If 404.html bounced us here from a clean URL like
-     * mstkhby.com/mohamednasrofficial, sessionStorage has the original
-     * path. Put that path back in the address bar (so the user still
-     * sees the nice clean link, not index.html or a #) and open that
-     * user's public send-message page directly.
+     * mstkhby.com/mohamednasrofficial, the original username arrives
+     * as a query param (?__mstkhby_user=...). Put the clean path back
+     * in the address bar (so the user still sees the nice link, not
+     * index.html or a ?param) and open that user's public
+     * send-message page directly.
      */
     handleCleanUrlRedirect() {
-        const rawPath = sessionStorage.getItem('mstkhby_redirect_path');
-        if (!rawPath) return;
-        sessionStorage.removeItem('mstkhby_redirect_path');
-
-        // Strip any query string, keep just the username segment.
-        const username = rawPath.split('?')[0].split('/')[0];
-        if (!username || username === 'index.html') return;
+        const params = new URLSearchParams(window.location.search);
+        const username = params.get('__mstkhby_user');
+        if (!username) return;
 
         // Restore the clean URL in the address bar without reloading.
         history.replaceState(null, '', '/' + username);
@@ -375,12 +372,14 @@ class MstkhbyApp {
             );
 
             if (result.messages.length === 0) {
+                const currentUserData = await window.authService?.getCurrentUserData();
+                const shareUsername = currentUserData?.username || '';
                 messagesList.innerHTML = `
                     <div style="text-align: center; padding: 60px 20px;">
                         <div style="font-size: 4rem; margin-bottom: 16px;">📭</div>
                         <h3 style="margin-bottom: 8px;">لا توجد رسائل</h3>
                         <p style="color: var(--text-secondary);">شارك رابطك لاستقبال رسائل سرية!</p>
-                        <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/' + '${this.currentUser?.displayName}')">
+                        <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/' + '${shareUsername}')">
                             نسخ الرابط
                         </button>
                     </div>
@@ -423,7 +422,8 @@ class MstkhbyApp {
         const identityBadge = {
             anonymous: `<span class="sender-badge badge-anonymous">🤫 مجهول</span>${senderBadges}`,
             alias: `<span class="sender-badge badge-anonymous">🎭 ${this.escapeHtml(message.alias || 'مستعار')}</span>${senderBadges}`,
-            reveal: `<span class="sender-badge badge-reveal">👤 معروف</span>${senderBadges}`
+            known: `<span class="sender-badge badge-reveal">👤 ${this.escapeHtml(message.senderDisplayName || 'معروف')}</span>${senderBadges}`,
+            reveal_later: `<span class="sender-badge badge-anonymous">${message.identityRevealed ? '👤 ' + this.escapeHtml(message.senderDisplayName || 'معروف') : '👁️ مجهول (قابل للكشف)'}</span>${senderBadges}`
         };
 
         const destructIndicator = {
@@ -494,11 +494,19 @@ class MstkhbyApp {
                     ` : ''}
 
                     <div class="detail-sender">
-                        <div class="detail-avatar">${message.identity === 'anonymous' ? '🤫' : '🎭'}</div>
+                        <div class="detail-avatar">${
+                            message.identity === 'known' ? '👤' :
+                            message.identity === 'alias' ? '🎭' :
+                            message.identity === 'reveal_later' ? (message.identityRevealed ? '👤' : '👁️') :
+                            '🤫'
+                        }</div>
                         <div class="detail-sender-info">
-                            <h3>${message.identity === 'reveal' && message.identityRevealed ? this.escapeHtml(message.senderDisplayName || 'معروف') : 
-                                message.identity === 'anonymous' ? 'شخص مجهول' :
-                                message.identity === 'alias' ? this.escapeHtml(message.alias || 'شخص مستعار') : 'شخص مجهول'}${window.UserBadges?.render({
+                            <h3>${
+                                message.identity === 'known' ? this.escapeHtml(message.senderDisplayName || 'معروف') :
+                                message.identity === 'reveal_later' && message.identityRevealed ? this.escapeHtml(message.senderDisplayName || 'معروف') :
+                                message.identity === 'alias' ? this.escapeHtml(message.alias || 'شخص مستعار') :
+                                'شخص مجهول'
+                            }${window.UserBadges?.render({
                                     plan: message.senderPlan,
                                     isVerified: message.senderIsVerified,
                                     verificationTier: message.senderVerificationTier,
@@ -537,7 +545,7 @@ class MstkhbyApp {
                             <button class="btn btn-outline btn-sm" onclick="window.app.shareMessage('${messageId}')">
                                 📤 مشاركة
                             </button>
-                            ${message.identity === 'reveal' && !message.identityRevealed ? `
+                            ${message.identity === 'reveal_later' && !message.identityRevealed ? `
                                 <button class="btn btn-outline btn-sm" onclick="window.app.revealIdentity('${messageId}')">
                                     👤 كشف الهوية
                                 </button>
