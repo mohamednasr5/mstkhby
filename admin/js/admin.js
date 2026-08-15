@@ -120,6 +120,14 @@ class AdminDashboard {
         this.database = window.MstkhbyFirebase?.database || firebase.database();
         this.allUsersCache = null; // { uid: profile } — refreshed on demand
         this.initialized = false;
+        // Kept in sync with paymentConfig.plans in js/payment-new.js
+        this.planLabels = { free: 'مجاني', premium: 'بريميوم', creator: 'منشئ محتوى' };
+    }
+
+    /** Human-readable label for a plan key, falling back to the raw key for unknown values. */
+    planLabel(plan) {
+        if (!plan || plan === 'free') return 'مجاني';
+        return this.planLabels[plan] || plan;
     }
 
     init() {
@@ -153,8 +161,31 @@ class AdminDashboard {
             selectAll: document.getElementById('selectAll'),
 
             // Reports
-            reportsList: document.getElementById('reportsList')
+            reportsList: document.getElementById('reportsList'),
+
+            // Sidebar badges (real counts, filled in by loadDashboardData)
+            sidebarUsersBadge: document.getElementById('sidebarUsersBadge'),
+            sidebarMessagesBadge: document.getElementById('sidebarMessagesBadge'),
+            sidebarReportsBadge: document.getElementById('sidebarReportsBadge')
         };
+    }
+
+    /** Formats a count for a compact badge, e.g. 1234 -> "1.2K", 2500000 -> "2.5M". */
+    formatBadgeCount(n) {
+        if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M+';
+        if (n >= 1000) return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'K+';
+        return String(n);
+    }
+
+    /** Shows a sidebar badge with a real count, or hides it entirely when there's nothing to show. */
+    setSidebarBadge(el, count) {
+        if (!el) return;
+        if (!count) {
+            el.hidden = true;
+            return;
+        }
+        el.textContent = this.formatBadgeCount(count);
+        el.hidden = false;
     }
 
     bindEvents() {
@@ -251,6 +282,9 @@ class AdminDashboard {
             case 'reports':
                 this.loadReports();
                 break;
+            case 'verifications':
+                this.loadVerifications();
+                break;
             case 'analytics':
                 this.loadAnalytics();
                 break;
@@ -342,7 +376,8 @@ class AdminDashboard {
         const usersById = {};
         snap.forEach(child => {
             const profile = child.val()?.profile;
-            if (profile) usersById[child.key] = profile;
+            const entitlements = child.val()?.entitlements;
+            if (profile) usersById[child.key] = { ...profile, ...entitlements };
         });
         this.allUsersCache = usersById;
         return usersById;
@@ -396,6 +431,19 @@ class AdminDashboard {
             const pendingCount = reports.filter(r => (r.status || 'pending') === 'pending').length;
             const notifBadge = document.querySelector('.notif-count');
             if (notifBadge) notifBadge.textContent = pendingCount.toLocaleString('ar-EG');
+
+            // Real sidebar badges — replaces the old hardcoded "150K+ / 2M+ / 15"
+            // placeholders that never reflected actual data.
+            this.setSidebarBadge(this.elements.sidebarUsersBadge, totalUsers);
+            this.setSidebarBadge(this.elements.sidebarMessagesBadge, totalMessages);
+            this.setSidebarBadge(this.elements.sidebarReportsBadge, pendingCount);
+
+            // Pending verification requests were previously invisible — there
+            // was no admin UI at all for the applications js/verification.js
+            // already collects. Surface a live count in the sidebar.
+            this.database.ref('verifications').orderByChild('status').equalTo('pending').once('value')
+                .then(snap => this.updateVerificationsBadge(snap.numChildren()))
+                .catch(err => console.warn('verifications count failed:', err));
 
         } catch (error) {
             console.error('Error loading dashboard:', error);
@@ -636,14 +684,14 @@ class AdminDashboard {
                     <div class="user-cell">
                         <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.username || '?')}&background=0ea5e9&color=fff`}" alt="${this.escapeHtml(user.displayName || '')}">
                         <div>
-                            <strong>${this.escapeHtml(user.displayName || 'بدون اسم')}</strong>
+                            <strong>${this.escapeHtml(user.displayName || 'بدون اسم')}${user.isVerified ? ` <span title="${this.escapeHtml(window.verificationService?.verificationTiers?.[user.verificationTier]?.name || 'موثّق')}" style="color:${user.badgeColor || '#1d9bf0'};">${user.badgeIcon || '✔️'}</span>` : ''}</strong>
                             <small>@${this.escapeHtml(user.username || '')}</small>
                         </div>
                     </div>
                 </td>
                 <td>${this.escapeHtml(user.email || '')}</td>
                 <td><span class="status-badge ${user.status === 'banned' ? 'banned' : 'active'}">${user.status === 'banned' ? 'محظور' : 'نشط'}</span></td>
-                <td><span class="plan-badge ${user.plan && user.plan !== 'free' ? 'premium' : 'free'}">${user.plan && user.plan !== 'free' ? 'بريميوم' : 'مجاني'}</span></td>
+                <td><span class="plan-badge ${user.plan && user.plan !== 'free' ? 'premium' : 'free'}">${this.planLabel(user.plan)}</span></td>
                 <td>${(user.stats?.totalMessagesReceived || 0).toLocaleString('ar-EG')}</td>
                 <td>${user.createdAt ? this.formatDate(new Date(user.createdAt).toISOString()) : '—'}</td>
                 <td>
@@ -687,6 +735,8 @@ class AdminDashboard {
             username: document.getElementById('udUsername'),
             link: document.getElementById('udProfileLink'),
             planBadge: document.getElementById('udPlanBadge'),
+            verifiedBadge: document.getElementById('udVerifiedBadge'),
+            verificationSelect: document.getElementById('udVerificationSelect'),
             email: document.getElementById('udEmail'),
             createdAt: document.getElementById('udCreatedAt'),
             lastActive: document.getElementById('udLastActive'),
@@ -708,8 +758,17 @@ class AdminDashboard {
         if (els.link) { els.link.textContent = profileUrl; els.link.href = profileUrl.startsWith('http') ? profileUrl : `https://${profileUrl}`; }
         if (els.planBadge) {
             const isPremium = user.plan && user.plan !== 'free';
-            els.planBadge.textContent = isPremium ? `بريميوم${user.plan !== 'premium' ? ' (' + user.plan + ')' : ''}` : 'مجاني';
+            els.planBadge.textContent = this.planLabel(user.plan);
             els.planBadge.className = `badge ${isPremium ? 'premium' : ''}`;
+            els.planBadge.hidden = !isPremium;
+        }
+        if (els.verifiedBadge) {
+            els.verifiedBadge.hidden = !user.isVerified;
+            if (user.isVerified) {
+                const tier = window.verificationService?.verificationTiers?.[user.verificationTier];
+                els.verifiedBadge.textContent = `${user.badgeIcon || tier?.icon || '✔️'} ${tier?.name || 'موثّق'}`;
+                els.verifiedBadge.style.background = user.badgeColor || tier?.color || '#1d9bf0';
+            }
         }
         if (els.email) els.email.textContent = user.email || '—';
         if (els.createdAt) els.createdAt.textContent = user.createdAt ? this.formatDate(new Date(user.createdAt).toISOString()) : '—';
@@ -720,6 +779,7 @@ class AdminDashboard {
             els.status.className = banned ? 'status-banned' : 'status-active';
         }
         if (els.planSelect) els.planSelect.value = user.plan || 'free';
+        if (els.verificationSelect) els.verificationSelect.value = user.isVerified ? (user.verificationTier || 'basic') : 'none';
         if (els.loginHistory) { els.loginHistory.style.display = 'none'; els.loginHistory.innerHTML = ''; }
 
         // Message counts (sent / received / deleted-archived), fetched from the indexes
@@ -756,6 +816,9 @@ class AdminDashboard {
         const saveBtn = document.getElementById('udSavePlanBtn');
         if (saveBtn) saveBtn.onclick = () => this.changeUserPlan(userId, els.planSelect?.value || 'free');
 
+        const saveVerificationBtn = document.getElementById('udSaveVerificationBtn');
+        if (saveVerificationBtn) saveVerificationBtn.onclick = () => this.setUserVerificationTier(userId, els.verificationSelect?.value || 'none');
+
         this.openModal('userDetailModal');
     }
 
@@ -764,8 +827,8 @@ class AdminDashboard {
         try {
             const now = Date.now();
             const updates = {
-                [`users/${userId}/profile/plan`]: newPlan,
-                [`users/${userId}/profile/subscriptionStatus`]: newPlan === 'free' ? 'inactive' : 'active'
+                [`users/${userId}/entitlements/plan`]: newPlan,
+                [`users/${userId}/entitlements/subscriptionStatus`]: newPlan === 'free' ? 'inactive' : 'active'
             };
             if (newPlan !== 'free') {
                 updates[`users/${userId}/subscriptions/current`] = {
@@ -786,6 +849,52 @@ class AdminDashboard {
         } catch (error) {
             console.error('changeUserPlan error:', error);
             this.showToast('خطأ', 'تعذر تغيير باقة المستخدم', 'error');
+        }
+    }
+
+    /**
+     * Directly grant or clear a verification tier from the admin panel,
+     * independent of the public application flow in js/verification.js
+     * (useful when the admin wants to badge someone who never applied).
+     * Writes the same profile fields approveApplication() would.
+     */
+    async setUserVerificationTier(userId, tierKey) {
+        try {
+            const tiers = window.verificationService?.verificationTiers || {
+                basic: { name: 'موثق أساسي', icon: '✓', color: '#0ea5e9' },
+                influencer: { name: 'مؤثر موثق', icon: '⭐', color: '#8b5cf6' },
+                celebrity: { name: 'مشهور موثق', icon: '👑', color: '#f59e0b' }
+            };
+            const now = Date.now();
+            let updates;
+
+            if (tierKey === 'none') {
+                updates = {
+                    [`users/${userId}/entitlements/isVerified`]: false,
+                    [`users/${userId}/entitlements/verificationTier`]: null,
+                    [`users/${userId}/entitlements/badgeIcon`]: null,
+                    [`users/${userId}/entitlements/badgeColor`]: null
+                };
+            } else {
+                const tier = tiers[tierKey];
+                if (!tier) throw new Error('مستوى توثيق غير صالح');
+                updates = {
+                    [`users/${userId}/entitlements/isVerified`]: true,
+                    [`users/${userId}/entitlements/verificationTier`]: tierKey,
+                    [`users/${userId}/entitlements/verifiedAt`]: now,
+                    [`users/${userId}/entitlements/badgeIcon`]: tier.icon,
+                    [`users/${userId}/entitlements/badgeColor`]: tier.color
+                };
+            }
+
+            await this.database.ref().update(updates);
+            await this.fetchAllUsers(true);
+            this.showToast('تم التحديث', tierKey === 'none' ? 'تم سحب علامة التوثيق' : 'تم منح علامة التوثيق', 'success');
+            this.viewUser(userId);
+            this.loadUsers();
+        } catch (error) {
+            console.error('setUserVerificationTier error:', error);
+            this.showToast('خطأ', 'تعذر تحديث علامة التوثيق', 'error');
         }
     }
 
@@ -915,7 +1024,7 @@ class AdminDashboard {
             isBanned ? 'هل تريد إلغاء حظر هذا المستخدم؟' : 'هل أنت متأكد من حظر هذا المستخدم؟',
             async () => {
                 try {
-                    await this.database.ref(`users/${userId}/profile/status`).set(isBanned ? 'active' : 'banned');
+                    await this.database.ref(`users/${userId}/entitlements/status`).set(isBanned ? 'active' : 'banned');
                     this.showToast(isBanned ? 'تم إلغاء الحظر' : 'تم الحظر', 'تم تحديث حالة المستخدم في قاعدة البيانات', 'success');
                     await this.fetchAllUsers(true);
                     this.loadUsers();
@@ -1045,6 +1154,101 @@ class AdminDashboard {
         }
     }
 
+    /**
+     * Verification requests — reviews applications submitted through the
+     * public "طلب توثيق" form (js/verification.js) and approves/rejects
+     * them using that same service, so the tier definitions (icon/color)
+     * stay in one place.
+     */
+    async loadVerifications() {
+        const container = document.getElementById('verificationsList');
+        if (!container) return;
+
+        container.innerHTML = this.emptyState('جاري تحميل الطلبات...');
+
+        try {
+            const snap = await this.database.ref('verifications').orderByChild('status').equalTo('pending').once('value');
+            const applications = [];
+            snap.forEach(child => { applications.push({ id: child.key, ...child.val() }); });
+
+            this.updateVerificationsBadge(applications.length);
+
+            if (applications.length === 0) {
+                container.innerHTML = this.emptyState('لا توجد طلبات توثيق قيد الانتظار');
+                return;
+            }
+
+            const tiers = window.verificationService?.verificationTiers || {};
+            container.innerHTML = applications.map(app => {
+                const tier = tiers[app.tier] || { name: app.tier, icon: '✓', color: '#0ea5e9' };
+                const data = app.data || {};
+                return `
+                <div class="report-card" data-user-id="${app.userId}">
+                    <div class="report-header">
+                        <span class="report-id">${tier.icon} ${this.escapeHtml(tier.name)}</span>
+                        <span class="report-status pending">قيد الانتظار</span>
+                    </div>
+                    <div class="report-content">
+                        <p><strong>المستخدم:</strong> ${this.escapeHtml(data.fullName || app.userId)}</p>
+                        <p><strong>نبذة:</strong> ${this.escapeHtml(data.bio || '—')}</p>
+                        <p><strong>سبب الطلب:</strong> ${this.escapeHtml(data.reason || '—')}</p>
+                        <p><strong>حسابات التواصل:</strong> ${(data.socialLinks || []).map(l => `${this.escapeHtml(l.platform)}: ${this.escapeHtml(l.url || '')} (${this.formatNumber(l.followers || 0)})`).join('، ') || '—'}</p>
+                        <p><strong>تاريخ الطلب:</strong> ${app.createdAt ? this.timeAgo(app.createdAt) : '—'}</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-success btn-sm" onclick="adminDashboard.approveVerification('${app.userId}')">✅ موافقة</button>
+                        <button class="btn btn-danger btn-sm" onclick="adminDashboard.rejectVerification('${app.userId}')">❌ رفض</button>
+                        <button class="btn btn-outline btn-sm" onclick="adminDashboard.viewUser('${app.userId}')">👁️ عرض الحساب</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading verification requests:', error);
+            container.innerHTML = this.emptyState('❌ تعذر تحميل طلبات التوثيق');
+        }
+    }
+
+    updateVerificationsBadge(count) {
+        const el = document.getElementById('sidebarVerificationsBadge');
+        if (!el) return;
+        if (!count) { el.hidden = true; return; }
+        el.textContent = String(count);
+        el.hidden = false;
+    }
+
+    async approveVerification(userId) {
+        if (!window.verificationService) {
+            this.showToast('خطأ', 'خدمة التوثيق غير محمّلة', 'error');
+            return;
+        }
+        try {
+            await window.verificationService.approveApplication(userId);
+            this.showToast('تم', 'تم قبول طلب التوثيق ومنح الشارة', 'success');
+            await this.fetchAllUsers(true);
+            this.loadVerifications();
+        } catch (error) {
+            console.error('approveVerification error:', error);
+            this.showToast('خطأ', 'تعذر قبول الطلب', 'error');
+        }
+    }
+
+    async rejectVerification(userId) {
+        const reason = prompt('سبب الرفض (سيظهر للمستخدم):');
+        if (reason === null) return;
+        if (!window.verificationService) {
+            this.showToast('خطأ', 'خدمة التوثيق غير محمّلة', 'error');
+            return;
+        }
+        try {
+            await window.verificationService.rejectApplication(userId, reason);
+            this.showToast('تم', 'تم رفض طلب التوثيق', 'success');
+            this.loadVerifications();
+        } catch (error) {
+            console.error('rejectVerification error:', error);
+            this.showToast('خطأ', 'تعذر رفض الطلب', 'error');
+        }
+    }
+
     handleReport(action, reportId) {
         const actions = {
             resolve: 'حل البلاغ',
@@ -1067,7 +1271,7 @@ class AdminDashboard {
                             ? await this.database.ref(`messages/${report.messageId}`).once('value')
                             : null;
                         const senderId = msgSnap?.val()?.senderId;
-                        if (senderId) updates[`users/${senderId}/profile/status`] = 'banned';
+                        if (senderId) updates[`users/${senderId}/entitlements/status`] = 'banned';
                     }
 
                     await this.database.ref().update(updates);

@@ -62,10 +62,55 @@ class MessagesService {
 
             const senderId = this.auth?.currentUser?.uid || null; // null for anonymous
 
+            // Denormalize a snapshot of the sender's own profile onto the
+            // message itself. This is what powers:
+            //   - "reveal identity later" (senderDisplayName/senderPhotoURL
+            //     were never being written before, so a revealed message
+            //     always showed a blank/generic name — fixed here)
+            //   - the crown/verified badges next to the sender label, shown
+            //     even while the sender stays anonymous or under an alias
+            //     (only their plan/verified status is exposed, never who
+            //     they are, unless they explicitly chose "reveal")
+            // The sender can always read their own profile (auth.uid ===
+            // their own uid), so this lookup is allowed by the DB rules.
+            let senderDisplayName = null;
+            let senderPhotoURL = null;
+            let senderPlan = null;
+            let senderIsVerified = false;
+            let senderVerificationTier = null;
+            let senderBadgeIcon = null;
+            let senderBadgeColor = null;
+            if (senderId) {
+                try {
+                    const [senderProfileSnap, senderEntitlementsSnap] = await Promise.all([
+                        this.database.ref(`users/${senderId}/profile`).once('value'),
+                        this.database.ref(`users/${senderId}/entitlements`).once('value')
+                    ]);
+                    const senderProfile = senderProfileSnap.val() || {};
+                    const senderEntitlements = senderEntitlementsSnap.val() || {};
+                    senderDisplayName = senderProfile.displayName || null;
+                    senderPhotoURL = senderProfile.photoURL || null;
+                    senderPlan = senderEntitlements.plan || 'free';
+                    senderIsVerified = !!senderEntitlements.isVerified;
+                    senderVerificationTier = senderEntitlements.verificationTier || null;
+                    senderBadgeIcon = senderEntitlements.badgeIcon || null;
+                    senderBadgeColor = senderEntitlements.badgeColor || null;
+                } catch (e) {
+                    console.warn('Could not load sender profile for denormalization:', e);
+                }
+            }
+
             const messageDoc = {
                 id: messageId,
                 recipientId,
                 senderId,
+                senderDisplayName,
+                senderPhotoURL,
+                senderPlan,
+                senderIsVerified,
+                senderVerificationTier,
+                senderBadgeIcon,
+                senderBadgeColor,
                 content: this.sanitizeContent(content),
                 messageType: messageType || 'text',
                 mediaUrl,

@@ -304,11 +304,11 @@ class VerificationService {
             updates[`verifications/${userId}/reviewedAt`] = timestamp;
             updates[`verifications/${userId}/adminNotes`] = adminNotes;
 
-            updates[`users/${userId}/profile/isVerified`] = true;
-            updates[`users/${userId}/profile/verificationTier`] = appData.tier;
-            updates[`users/${userId}/profile/verifiedAt`] = timestamp;
-            updates[`users/${userId}/profile/badgeColor`] = tier.color;
-            updates[`users/${userId}/profile/badgeIcon`] = tier.icon;
+            updates[`users/${userId}/entitlements/isVerified`] = true;
+            updates[`users/${userId}/entitlements/verificationTier`] = appData.tier;
+            updates[`users/${userId}/entitlements/verifiedAt`] = timestamp;
+            updates[`users/${userId}/entitlements/badgeColor`] = tier.color;
+            updates[`users/${userId}/entitlements/badgeIcon`] = tier.icon;
             updates[`users/${userId}/profile/customShortLink`] =
                 appData.tier !== 'basic' && username ? `mstkh.by/${username}` : null;
 
@@ -346,7 +346,7 @@ class VerificationService {
             updates[`verifications/${userId}/canReapplyAfter`] = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
             updates[`users/${userId}/profile/verificationRequested`] = false;
-            updates[`users/${userId}/profile/isVerified`] = false;
+            updates[`users/${userId}/entitlements/isVerified`] = false;
 
             await this.database.ref().update(updates);
 

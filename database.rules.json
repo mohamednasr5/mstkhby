@@ -8,7 +8,23 @@
       "$uid": {
         "profile": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
-          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+
+          "displayName": { ".read": true },
+          "username": { ".read": true },
+          "photoURL": { ".read": true },
+          "profileUrl": { ".read": true }
+        },
+
+        "entitlements": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+          ".write": "auth != null && ((auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com') || (auth.uid === $uid && !data.exists() && newData.child('plan').val() === 'free' && newData.child('isVerified').val() === false && newData.child('status').val() === 'active'))",
+
+          "plan": { ".read": true },
+          "isVerified": { ".read": true },
+          "verificationTier": { ".read": true },
+          "badgeIcon": { ".read": true },
+          "badgeColor": { ".read": true }
         },
         "subscriptions": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
@@ -87,6 +103,7 @@
 
     "verifications": {
       ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".indexOn": ["status"],
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
         ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"

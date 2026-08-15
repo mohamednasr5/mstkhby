@@ -317,7 +317,7 @@ class AuthService {
     async createUserDocument(user, displayName, username) {
         const timestamp = firebase.database.ServerValue.TIMESTAMP;
 
-        const userData = {
+        const profileData = {
             uid: user.uid,
             email: user.email,
             displayName,
@@ -326,8 +326,6 @@ class AuthService {
             profileUrl: `mstkhby.com/${username.toLowerCase()}`,
             createdAt: timestamp,
             lastActiveAt: timestamp,
-            isVerified: false,
-            plan: 'free',
             settings: {
                 privacyLevel: 'medium',
                 allowMessages: true,
@@ -339,12 +337,25 @@ class AuthService {
             stats: {
                 totalMessagesReceived: 0,
                 totalReactions: 0
-            },
+            }
+        };
+
+        // Plan / verification / ban status live in a separate "entitlements"
+        // node that only an admin can write to after this initial creation
+        // (see database.rules.json) — this is the only write a regular
+        // account is ever allowed to make there, and only once, and only
+        // with these exact "nothing granted yet" defaults.
+        const entitlementsData = {
+            plan: 'free',
+            isVerified: false,
             status: 'active'
         };
 
-        // Write profile under users/$uid/profile (matches the security rules)
-        await this.database.ref(`users/${user.uid}/profile`).set(userData);
+        // Write profile + entitlements under users/$uid (matches the security rules)
+        await this.database.ref().update({
+            [`users/${user.uid}/profile`]: profileData,
+            [`users/${user.uid}/entitlements`]: entitlementsData
+        });
 
         // Create username index for uniqueness
         await this.database.ref(`usernames/${username.toLowerCase()}`).set({
@@ -375,16 +386,21 @@ class AuthService {
         }
     }
 
-    // Get current user data
+    // Get current user data (profile + entitlements merged into one object,
+    // so every existing call site that reads userData.plan / .isVerified /
+    // .status keeps working unchanged even though they now live separately)
     async getCurrentUserData() {
         if (!this.currentUser) return null;
         
         try {
-            const snapshot = await this.database
-                .ref(`users/${this.currentUser.uid}/profile`)
-                .once('value');
-            
-            return snapshot.exists() ? snapshot.val() : null;
+            const uid = this.currentUser.uid;
+            const [profileSnap, entitlementsSnap] = await Promise.all([
+                this.database.ref(`users/${uid}/profile`).once('value'),
+                this.database.ref(`users/${uid}/entitlements`).once('value')
+            ]);
+
+            if (!profileSnap.exists()) return null;
+            return { ...profileSnap.val(), ...(entitlementsSnap.val() || {}) };
         } catch (error) {
             console.error('Error getting user data:', error);
             return null;
@@ -510,9 +526,16 @@ class AuthService {
             }
 
             const uid = usernameSnap.val().uid;
-            const userSnap = await this.database.ref(`users/${uid}/profile`).once('value');
+            const [profileSnap, entitlementsSnap] = await Promise.all([
+                this.database.ref(`users/${uid}/profile`).once('value'),
+                // Only the public-safe entitlement fields (plan/isVerified/etc.)
+                // are readable by a visitor who isn't this account's owner —
+                // see the per-field .read overrides in database.rules.json.
+                this.database.ref(`users/${uid}/entitlements`).once('value')
+            ]);
 
-            return userSnap.exists() ? { id: uid, ...userSnap.val() } : null;
+            if (!profileSnap.exists()) return null;
+            return { id: uid, ...profileSnap.val(), ...(entitlementsSnap.val() || {}) };
         } catch (error) {
             console.error('Error getting user by username:', error);
             return null;

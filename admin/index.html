@@ -4,7 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الأدمن - مستخبي</title>
-    
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Icons (admin isn't a PWA install target, so no manifest link here —
+         just the browser-tab favicon set) -->
+    <meta name="theme-color" content="#0ea5e9">
+    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/icon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/assets/icons/icon-48.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -57,21 +69,28 @@
                         <a href="#users" class="nav-item" data-page="users">
                             <span class="nav-icon">👥</span>
                             <span>المستخدمون</span>
-                            <span class="nav-badge">150K+</span>
+                            <span class="nav-badge" id="sidebarUsersBadge" hidden>0</span>
                         </a>
                     </li>
                     <li>
                         <a href="#messages" class="nav-item" data-page="messages">
                             <span class="nav-icon">✉️</span>
                             <span>الرسائل</span>
-                            <span class="nav-badge warning">2M+</span>
+                            <span class="nav-badge warning" id="sidebarMessagesBadge" hidden>0</span>
                         </a>
                     </li>
                     <li>
                         <a href="#reports" class="nav-item" data-page="reports">
                             <span class="nav-icon">🚩</span>
                             <span>البلاغات</span>
-                            <span class="nav-badge danger">15</span>
+                            <span class="nav-badge danger" id="sidebarReportsBadge" hidden>0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#verifications" class="nav-item" data-page="verifications">
+                            <span class="nav-icon">✔️</span>
+                            <span>طلبات التوثيق</span>
+                            <span class="nav-badge warning" id="sidebarVerificationsBadge" hidden>0</span>
                         </a>
                     </li>
                     <li>
@@ -328,6 +347,18 @@
                 </div>
             </section>
 
+            <!-- Verification Requests Page -->
+            <section class="admin-page" id="page-verifications">
+                <div class="page-header">
+                    <h1>طلبات التوثيق</h1>
+                    <p>راجع طلبات الحصول على شارة التوثيق ووافق عليها أو ارفضها</p>
+                </div>
+
+                <div class="reports-list" id="verificationsList">
+                    <!-- Verification applications load here from Firebase -->
+                </div>
+            </section>
+
             <!-- Moderation Page -->
             <section class="admin-page" id="page-moderation">
                 <div class="page-header">
@@ -558,7 +589,8 @@
                     <h2 id="udDisplayName">اسم المستخدم</h2>
                     <p>@<span id="udUsername">username</span></p>
                     <a id="udProfileLink" href="#" target="_blank" rel="noopener" style="font-size:13px;color:#0ea5e9;display:block;margin-top:2px;">mstkhby.com/username</a>
-                    <span class="badge premium" id="udPlanBadge">بريميوم</span>
+                    <span class="badge premium" id="udPlanBadge" hidden>بريميوم</span>
+                    <span class="badge" id="udVerifiedBadge" style="background:#1d9bf0;color:#fff;" hidden>✔️ موثّق</span>
                 </div>
             </div>
 
@@ -600,9 +632,21 @@
                         <select id="udPlanSelect" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;">
                             <option value="free">مجاني</option>
                             <option value="premium">بريميوم</option>
-                            <option value="premium_plus">بريميوم +</option>
+                            <option value="creator">منشئ محتوى</option>
                         </select>
                         <button class="btn btn-primary btn-sm" id="udSavePlanBtn" style="margin-right:6px;">💾 حفظ الباقة</button>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span>علامة التوثيق:</span>
+                    <span>
+                        <select id="udVerificationSelect" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;">
+                            <option value="none">بدون توثيق</option>
+                            <option value="basic">✓ موثق أساسي (أزرق)</option>
+                            <option value="influencer">⭐ مؤثر موثق (بنفسجي)</option>
+                            <option value="celebrity">👑 مشهور موثق (ذهبي)</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" id="udSaveVerificationBtn" style="margin-right:6px;">💾 حفظ التوثيق</button>
                     </span>
                 </div>
             </div>
@@ -624,6 +668,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="../js/firebase-config.js"></script>
+    <script src="../js/verification.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>

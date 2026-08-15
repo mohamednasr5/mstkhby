@@ -383,10 +383,18 @@ class MstkhbyApp {
      * Render message item
      */
     renderMessageItem(message) {
+        const senderProfileSnapshot = {
+            plan: message.senderPlan,
+            isVerified: message.senderIsVerified,
+            verificationTier: message.senderVerificationTier,
+            badgeIcon: message.senderBadgeIcon,
+            badgeColor: message.senderBadgeColor
+        };
+        const senderBadges = window.UserBadges?.render(senderProfileSnapshot) || '';
         const identityBadge = {
-            anonymous: '<span class="sender-badge badge-anonymous">🤫 مجهول</span>',
-            alias: `<span class="sender-badge badge-anonymous">🎭 ${message.alias || 'مستعار'}</span>`,
-            reveal: '<span class="sender-badge badge-reveal">👤 معروف</span>'
+            anonymous: `<span class="sender-badge badge-anonymous">🤫 مجهول</span>${senderBadges}`,
+            alias: `<span class="sender-badge badge-anonymous">🎭 ${this.escapeHtml(message.alias || 'مستعار')}</span>${senderBadges}`,
+            reveal: `<span class="sender-badge badge-reveal">👤 معروف</span>${senderBadges}`
         };
 
         const destructIndicator = {
@@ -459,9 +467,15 @@ class MstkhbyApp {
                     <div class="detail-sender">
                         <div class="detail-avatar">${message.identity === 'anonymous' ? '🤫' : '🎭'}</div>
                         <div class="detail-sender-info">
-                            <h3>${message.identity === 'reveal' && message.identityRevealed ? message.senderDisplayName || 'معروف' : 
+                            <h3>${message.identity === 'reveal' && message.identityRevealed ? this.escapeHtml(message.senderDisplayName || 'معروف') : 
                                 message.identity === 'anonymous' ? 'شخص مجهول' :
-                                message.identity === 'alias' ? (message.alias || 'شخص مستعار') : 'شخص مجهول'}</h3>
+                                message.identity === 'alias' ? this.escapeHtml(message.alias || 'شخص مستعار') : 'شخص مجهول'}${window.UserBadges?.render({
+                                    plan: message.senderPlan,
+                                    isVerified: message.senderIsVerified,
+                                    verificationTier: message.senderVerificationTier,
+                                    badgeIcon: message.senderBadgeIcon,
+                                    badgeColor: message.senderBadgeColor
+                                }) || ''}</h3>
                             <p>${window.uiManager?.formatRelativeDate(message.createdAt)}</p>
                         </div>
                     </div>
@@ -689,7 +703,8 @@ class MstkhbyApp {
             }
 
             if (userData) {
-                document.getElementById('profileName').textContent = userData.displayName || 'مستخدم';
+                document.getElementById('profileName').innerHTML =
+                    `${this.escapeHtml(userData.displayName || 'مستخدم')}${window.UserBadges?.render(userData) || ''}`;
                 document.getElementById('profileUsername').textContent = `@${userData.username || '—'}`;
                 document.getElementById('profileLink').textContent = `mstkhby.com/${userData.username || ''}`;
                 document.getElementById('statMessages').textContent = userData.stats?.totalMessagesReceived || 0;
@@ -776,7 +791,12 @@ class MstkhbyApp {
         if (!contentEl) return;
 
         switch (tabName) {
-            case 'info':
+            case 'info': {
+                const userData = await window.authService?.getCurrentUserData();
+                const planKey = userData?.plan || 'free';
+                const planLabel = planKey === 'free' ? 'مجانية' : (window.UserBadges?.planLabel(planKey) || 'بريميوم');
+                const isPremiumPlan = planKey !== 'free';
+
                 contentEl.innerHTML = `
                     <div class="settings-section">
                         <div class="settings-item">
@@ -800,13 +820,14 @@ class MstkhbyApp {
                         <div class="settings-item">
                             <div class="settings-label">
                                 <strong>الخطة</strong>
-                                <span>مجانية</span>
+                                <span>${planLabel}${window.UserBadges?.render(userData) || ''}</span>
                             </div>
-                            <button class="btn btn-primary btn-sm" onclick="window.location.href='payment.html'">ترقية</button>
+                            <button class="btn btn-primary btn-sm" onclick="window.location.href='payment.html'">${isPremiumPlan ? 'إدارة الاشتراك' : 'ترقية'}</button>
                         </div>
                     </div>
                 `;
                 break;
+            }
 
             case 'analytics':
                 contentEl.innerHTML = `
@@ -1106,7 +1127,8 @@ class MstkhbyApp {
             const userData = await window.authService?.getUserByUsername(username);
             
             if (userData) {
-                document.getElementById('publicProfileName').textContent = userData.displayName;
+                document.getElementById('publicProfileName').innerHTML =
+                    `${this.escapeHtml(userData.displayName || '')}${window.UserBadges?.render(userData) || ''}`;
                 
                 if (userData.photoURL) {
                     document.getElementById('publicProfileAvatar').innerHTML = 

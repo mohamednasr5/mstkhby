@@ -1226,3 +1226,66 @@
 @media (max-width: 420px) {
     .pwa-install-banner__text span { display: none; }
 }
+
+/* ===================================
+   User Badges (premium crown / verified check)
+   Rendered next to a display name anywhere it appears —
+   own profile, public profile page, and message sender labels.
+   =================================== */
+.user-badge-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    vertical-align: middle;
+    margin-inline-start: 6px;
+}
+
+.user-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    line-height: 0;
+}
+
+.user-badge svg { display: block; }
+
+/* Premium crown — gold gradient with a soft glowing pulse */
+.user-badge--crown svg {
+    width: 1.05em;
+    height: 1.05em;
+}
+
+.user-badge--crown {
+    animation: userBadgeCrownPulse 2.4s ease-in-out infinite;
+    transform-origin: center bottom;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 2px rgba(250, 204, 21, 0.55));
+}
+
+@keyframes userBadgeCrownPulse {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 2px rgba(250, 204, 21, 0.55));
+    }
+    50% {
+        transform: scale(1.12) rotate(-3deg);
+        filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 6px rgba(250, 204, 21, 0.95));
+    }
+}
+
+/* Verification badge — circular, icon/color driven by the user's tier
+   (✓ blue "basic", ⭐ purple "influencer", 👑 gold "celebrity") */
+.user-badge--verified {
+    width: 1.1em;
+    height: 1.1em;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.68em;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .user-badge--crown {
+        animation: none;
+    }
+}

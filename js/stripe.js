@@ -101,7 +101,8 @@ class StripeService {
                         apiAccess: true
                     }
                 }
-            };
+            }
+        };
             
             this.currentPlan = null;
             this.subscription = null;
@@ -134,8 +135,11 @@ class StripeService {
             const userId = this.auth.currentUser?.uid;
             if (!userId) return;
 
-            const snap = await this.database.ref(`users/${userId}/profile`).once('value');
-            const userData = snap.val() || {};
+            const [profileSnap, entitlementsSnap] = await Promise.all([
+                this.database.ref(`users/${userId}/profile`).once('value'),
+                this.database.ref(`users/${userId}/entitlements`).once('value')
+            ]);
+            const userData = { ...(profileSnap.val() || {}), ...(entitlementsSnap.val() || {}) };
 
             this.currentPlan = this.plans[userData.plan] || this.plans.free;
 
