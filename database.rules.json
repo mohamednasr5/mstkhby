@@ -36,7 +36,13 @@
         },
         "warnings": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
-          ".write": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
+          ".write": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+
+          "$warningId": {
+            "acknowledged": {
+              ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
+            }
+          }
         },
         "loginHistory": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",

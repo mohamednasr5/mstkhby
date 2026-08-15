@@ -108,7 +108,7 @@ async function setupDatabase() {
                     name: 'مجاني',
                     nameEn: 'Free',
                     price: 0,
-                    currency: 'SAR',
+                    currency: 'EGP',
                     period: 'month',
                     features: [
                         'رابط شخصي واحد',
@@ -130,9 +130,9 @@ async function setupDatabase() {
                     id: 'premium',
                     name: 'بريميوم',
                     nameEn: 'Premium',
-                    price: 29,
-                    currency: 'SAR',
-                    annualPrice: 278, // 20% discount
+                    price: 50,
+                    currency: 'EGP',
+                    annualPrice: 480, // 20% discount
                     period: 'month',
                     features: [
                         'كل مميزات المجاني',
@@ -157,9 +157,9 @@ async function setupDatabase() {
                     id: 'creator',
                     name: 'منشئ محتوى',
                     nameEn: 'Creator Pro',
-                    price: 79,
-                    currency: 'SAR',
-                    annualPrice: 758, // 20% discount
+                    price: 100,
+                    currency: 'EGP',
+                    annualPrice: 960, // 20% discount
                     period: 'month',
                     features: [
                         'كل مميزات البريميوم',
@@ -187,7 +187,7 @@ async function setupDatabase() {
             settings: {
                 payments: {
                     enabled: true,
-                    currencies: ['SAR'],
+                    currencies: ['EGP'],
                     methods: ['stc_pay', 'apple_pay', 'bank_transfer', 'card'],
                     bankDetails: {
                         bankName: 'البنك الأهلي',

@@ -591,6 +591,16 @@
     height: 18px;
 }
 
+/* The three states above set display:flex directly, which overrides the
+   browser's default [hidden]{display:none} rule (author styles win over
+   the UA stylesheet). Without this, empty/preview/progress all render at
+   once regardless of the hidden attribute set in JS/HTML. */
+.receipt-upload__empty[hidden],
+.receipt-upload__preview[hidden],
+.receipt-upload__progress[hidden] {
+    display: none;
+}
+
 .submit-proof-btn {
     width: 100%;
     max-width: 400px;

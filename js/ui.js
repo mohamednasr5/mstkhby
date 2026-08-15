@@ -52,6 +52,12 @@ class UIManager {
             // Send Message Modal
             sendMessageModal: document.getElementById('sendMessageModal'),
             sendMessageForm: document.getElementById('sendMessageForm'),
+
+            // Demo Video Modal
+            demoBtn: document.getElementById('demoBtn'),
+            videoModal: document.getElementById('videoModal'),
+            closeVideoModal: document.getElementById('closeVideoModal'),
+            demoVideo: document.getElementById('demoVideo'),
             
             // Forms
             aliasInput: document.getElementById('aliasInput'),
@@ -109,6 +115,23 @@ class UIManager {
         if (this.elements.closeAuthModal) {
             this.elements.closeAuthModal.addEventListener('click', () => {
                 this.closeModal(this.elements.authModal);
+            });
+        }
+
+        // Demo video modal — plays 01.mp4 centered, starts automatically
+        // since the click itself is the user gesture browsers require.
+        if (this.elements.demoBtn) {
+            this.elements.demoBtn.addEventListener('click', () => {
+                this.openModal(this.elements.videoModal);
+                this.elements.demoVideo?.play().catch((err) => {
+                    console.warn('Autoplay blocked, user can press play manually:', err);
+                });
+            });
+        }
+
+        if (this.elements.closeVideoModal) {
+            this.elements.closeVideoModal.addEventListener('click', () => {
+                this.closeVideoModal();
             });
         }
 
@@ -368,6 +391,15 @@ class UIManager {
         if (!modal) return;
         modal.classList.remove('active');
         document.body.style.overflow = '';
+
+        if (modal === this.elements.videoModal && this.elements.demoVideo) {
+            this.elements.demoVideo.pause();
+            this.elements.demoVideo.currentTime = 0;
+        }
+    }
+
+    closeVideoModal() {
+        this.closeModal(this.elements.videoModal);
     }
 
     // Handle message type change

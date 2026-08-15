@@ -1273,15 +1273,36 @@
     }
 }
 
-/* Verification badge — circular, icon/color driven by the user's tier
-   (✓ blue "basic", ⭐ purple "influencer", 👑 gold "celebrity") */
+/* Verification badge — scalloped "seal" shape (two rounded squares layered
+   22.5deg apart) with a white checkmark on top, colored per tier via
+   --badge-color (رمادي "متفاعل", ذهبي "مؤثر", أزرق "مشهور"). */
 .user-badge--verified {
-    width: 1.1em;
-    height: 1.1em;
-    border-radius: 50%;
-    color: #fff;
-    font-size: 0.68em;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+    position: relative;
+    width: 1.15em;
+    height: 1.15em;
+    filter: drop-shadow(0 0 0 2px rgba(255, 255, 255, 0.9));
+}
+
+.user-badge--verified::before,
+.user-badge--verified::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--badge-color, #94a3b8);
+    border-radius: 30%;
+}
+
+.user-badge--verified::after {
+    transform: rotate(22.5deg);
+}
+
+.user-badge--verified-check {
+    position: relative;
+    z-index: 1;
+    width: 62%;
+    height: 62%;
+    margin: 19%;
+    display: block;
 }
 
 @media (prefers-reduced-motion: reduce) {

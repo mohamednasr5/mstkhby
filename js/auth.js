@@ -38,13 +38,50 @@ class AuthService {
                 if (user) {
                     console.log('✅ User logged in:', user.uid);
                     this.updateLastActive(user.uid);
+                    this.watchWarnings(user.uid);
                 } else {
                     console.log('👤 User logged out');
+                    this.unwatchWarnings();
                 }
 
                 resolve(user);
             });
         });
+    }
+
+    /**
+     * Surface admin warnings (admin/js/admin.js warnUser()) to the user.
+     * Previously these were only ever written to users/{uid}/warnings —
+     * nothing on this side read them, so they never reached the customer.
+     * child_added also fires for existing children on first attach, which
+     * is what shows a warning that was sent while the user was offline.
+     */
+    watchWarnings(userId) {
+        this.unwatchWarnings();
+        this.warningsRef = this.database.ref(`users/${userId}/warnings`);
+        this.warningsHandler = this.warningsRef.on('child_added', (snap) => {
+            const warning = snap.val();
+            if (!warning || warning.acknowledged === true) return;
+
+            window.uiManager?.showToast(
+                '⚠️ تحذير من إدارة المنصة',
+                warning.reason || 'مخالفة قواعد المنصة',
+                'warning',
+                8000
+            );
+
+            snap.ref.update({ acknowledged: true }).catch((err) => {
+                console.warn('Could not mark warning as acknowledged:', err);
+            });
+        });
+    }
+
+    unwatchWarnings() {
+        if (this.warningsRef && this.warningsHandler) {
+            this.warningsRef.off('child_added', this.warningsHandler);
+        }
+        this.warningsRef = null;
+        this.warningsHandler = null;
     }
 
     // Subscribe to auth changes

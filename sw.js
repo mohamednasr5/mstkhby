@@ -5,30 +5,33 @@
  * a browser shortcut).
  */
 
-// Bumped to v3: the favicon.ico is now a real multi-resolution icon and a
-// root-level /favicon.ico was added — bumping the version forces already
-// installed clients to drop the old cached icon and pick up the new one.
-const CACHE_VERSION = 'v3';
+// Bumped to v4: precache list and offline fallback now use paths relative
+// to this file (instead of root-absolute "/…") so the service worker
+// actually installs when the site is deployed under a subpath (e.g.
+// GitHub Pages project sites at username.github.io/repo/) — root-absolute
+// URLs there 404 against the account root, which made cache.addAll() fail
+// and the whole install step throw, so the PWA never became installable.
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `mstkhby-static-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
-    '/',
-    '/index.html',
-    '/inbox.html',
-    '/profile.html',
-    '/manifest.json',
-    '/css/main.css',
-    '/css/components.css',
-    '/css/animations.css',
-    '/css/responsive.css',
-    '/css/premium.css',
-    '/js/app.js',
-    '/js/user-badges.js',
-    '/js/pwa-install.js',
-    '/favicon.ico',
-    '/assets/icons/favicon.svg',
-    '/assets/icons/icon-192.png',
-    '/assets/icons/icon-512.png'
+    './',
+    'index.html',
+    'inbox.html',
+    'profile.html',
+    'manifest.json',
+    'css/main.css',
+    'css/components.css',
+    'css/animations.css',
+    'css/responsive.css',
+    'css/premium.css',
+    'js/app.js',
+    'js/user-badges.js',
+    'js/pwa-install.js',
+    'favicon.ico',
+    'assets/icons/favicon.svg',
+    'assets/icons/icon-192.png',
+    'assets/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -60,8 +63,10 @@ self.addEventListener('fetch', (event) => {
     if (url.origin !== self.location.origin) return;
 
     // Never cache the admin dashboard — it must always reflect live data
-    // and must never be servable while signed out / offline.
-    if (url.pathname.startsWith('/admin/')) return;
+    // and must never be servable while signed out / offline. Uses
+    // includes() (not startsWith()) since pathname is the full path from
+    // the domain root, which includes any GitHub Pages repo subfolder.
+    if (url.pathname.includes('/admin/')) return;
 
     event.respondWith(
         caches.match(event.request).then((cached) => {
@@ -79,7 +84,7 @@ self.addEventListener('fetch', (event) => {
                 })
                 .catch(() => {
                     if (event.request.mode === 'navigate') {
-                        return caches.match('/index.html');
+                        return caches.match('index.html');
                     }
                 });
         })

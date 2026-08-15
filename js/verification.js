@@ -19,12 +19,16 @@ class VerificationService {
         this.database = window.MstkhbyFirebase?.database;
         this.auth = window.MstkhbyFirebase?.auth;
         
+        // description = tooltip shown when hovering the small badge next to the
+        // display name (window.UserBadges renders it). name = the short label
+        // used on the tier/application cards.
         this.verificationTiers = {
             basic: {
                 id: 'basic',
-                name: 'موثق أساسي',
+                name: 'متفاعل',
                 icon: '✓',
-                color: '#0ea5e9',
+                color: '#94a3b8',
+                description: 'هذا المستخدم متفاعل دائم على مستخبي',
                 requirements: [
                     'حساب نشط لمدة 30 يوم على الأقل',
                     '50 رسالة مستلمة على الأقل',
@@ -32,7 +36,7 @@ class VerificationService {
                     'معلومات مكتملة في الملف الشخصي'
                 ],
                 benefits: [
-                    'شارة موثق ✓ زرقاء',
+                    'شارة متفاعل رمادية',
                     'أولوية في البحث',
                     'دعم فني متقدم'
                 ],
@@ -40,17 +44,18 @@ class VerificationService {
             },
             influencer: {
                 id: 'influencer',
-                name: 'مؤثر موثق',
-                icon: '⭐',
-                color: '#8b5cf6',
+                name: 'مؤثر',
+                icon: '✓',
+                color: '#f59e0b',
+                description: 'هذا المستخدم لديه الكثير من المتابعين على السوشيال ميديا',
                 requirements: [
-                    'حساب أساسي موثق',
+                    'حساب متفاعل موثق',
                     '1000+ متابعي على منصة اجتماعية واحدة',
                     'محتوى أصلي ومناسب',
                     'تفاعل حقيقي مع المتابعين'
                 ],
                 benefits: [
-                    'شارة مؤثر ⭐ بنفسجية',
+                    'شارة مؤثر ذهبية',
                     'رابط مخصص قصير (mstkh.by/اسمك)',
                     'Analytics API مجاني',
                     'Story Cards غير محدودة',
@@ -61,17 +66,18 @@ class VerificationService {
             },
             celebrity: {
                 id: 'celebrity',
-                name: 'مشهور موثق',
-                icon: '👑',
-                color: '#f59e0b',
+                name: 'مشهور',
+                icon: '✓',
+                color: '#0ea5e9',
+                description: 'هذا المستخدم شخصية عامة',
                 requirements: [
-                    'مستوى مؤثر موثق',
+                    'مستوى مؤثر موثق مسبقاً',
                     '10000+ متابعي على منصتين أو أكثر',
                     'شهرة معترف بها إعلامياً',
                     'محتوى يؤثر إيجابياً في المجتمع'
                 ],
                 benefits: [
-                    'شارة مشهور 👑 ذهبية',
+                    'شارة مشهور زرقاء',
                     'جميع مميزات المؤثر',
                     'إيرادات من الرسائل (Tips)',
                     'تخصيص كامل للملف الشخصي',
@@ -100,6 +106,35 @@ class VerificationService {
                 }
             });
         }
+
+        document.getElementById('closeVerificationModal')?.addEventListener('click', () => {
+            window.uiManager?.closeModal(document.getElementById('verificationModal'));
+        });
+    }
+
+    /**
+     * Entry point for the "اطلب التحقق الآن" buttons — opens the modal with
+     * the application form for the requested tier. Requires login.
+     */
+    showApplicationForm(tierId) {
+        if (!this.auth?.currentUser) {
+            window.uiManager?.showToast('سجّل الدخول أولاً', 'يجب تسجيل الدخول لتقديم طلب التحقق', 'warning');
+            window.uiManager?.openModal(window.uiManager?.elements?.authModal);
+            return;
+        }
+
+        if (!this.canApplyForVerification()) {
+            const msg = this.currentStatus === 'pending'
+                ? 'لديك طلب تحقق قيد المراجعة بالفعل'
+                : 'لا يمكنك التقديم الآن، حاول مرة أخرى لاحقاً';
+            window.uiManager?.showToast('تعذر التقديم', msg, 'warning');
+            return;
+        }
+
+        const body = document.getElementById('verificationModalBody');
+        if (!body) return;
+        body.innerHTML = this.createApplicationForm(tierId);
+        window.uiManager?.openModal(document.getElementById('verificationModal'));
     }
 
     /**
@@ -237,12 +272,14 @@ class VerificationService {
                 `تم إرسال طلب التحقق "${tier.name}". ${tier.reviewTime}`,
                 'success'
             );
+            window.uiManager?.closeModal(document.getElementById('verificationModal'));
 
             await this.loadVerificationStatus(userId);
             return { success: true, application };
 
         } catch (error) {
             console.error('❌ Application error:', error);
+            window.uiManager?.showToast('تعذر إرسال الطلب', error.message || 'حدث خطأ، حاول مرة أخرى', 'error');
             throw error;
         }
     }

@@ -4,9 +4,13 @@
  * ===================================
  * Renders the small badges shown next to a display name:
  *   - 👑 an animated gold crown for paid-plan users (premium / creator)
- *   - a verification badge (✓ / ⭐ / 👑) for accounts approved through the
- *     existing tier system in js/verification.js (users/{uid}/profile:
- *     isVerified, verificationTier, badgeIcon, badgeColor)
+ *   - a scalloped verification "seal" badge with a white checkmark, colored
+ *     by tier, for accounts approved through the existing tier system in
+ *     js/verification.js (users/{uid}/profile: isVerified, verificationTier,
+ *     badgeIcon, badgeColor):
+ *       - رمادي "متفاعل"  — متفاعل دائم على مستخبي
+ *       - ذهبي  "مؤثر"    — لديه الكثير من المتابعين على السوشيال ميديا
+ *       - أزرق  "مشهور"   — شخصية عامة
  *
  * Usage: append `window.UserBadges.render(profile)` next to any name,
  * where `profile` is a user profile object (or the denormalized sender
@@ -19,10 +23,16 @@
 
     // Kept in sync with VerificationService.verificationTiers in js/verification.js
     const VERIFICATION_TIERS = {
-        basic: { name: 'موثق أساسي', icon: '✓', color: '#0ea5e9' },
-        influencer: { name: 'مؤثر موثق', icon: '⭐', color: '#8b5cf6' },
-        celebrity: { name: 'مشهور موثق', icon: '👑', color: '#f59e0b' }
+        basic: { name: 'متفاعل', color: '#94a3b8', description: 'هذا المستخدم متفاعل دائم على مستخبي' },
+        influencer: { name: 'مؤثر', color: '#f59e0b', description: 'هذا المستخدم لديه الكثير من المتابعين على السوشيال ميديا' },
+        celebrity: { name: 'مشهور', color: '#0ea5e9', description: 'هذا المستخدم شخصية عامة' }
     };
+
+    // Same checkmark for every tier — only the seal color changes.
+    const CHECK_SVG = `
+        <svg class="user-badge--verified-check" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12.5L10 17.5L19 6.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
 
     const CROWN_SVG = `
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -56,14 +66,13 @@
         return `<span class="user-badge user-badge--crown" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">${CROWN_SVG}</span>`;
     }
 
-    /** Circular verification badge — icon/color come from the tier, falling back to a plain blue check if a tier isn't set. */
+    /** Scalloped seal badge with a white checkmark — color and tooltip come from the tier. */
     function verifiedBadge(profile) {
         if (!profile || !profile.isVerified) return '';
         const tier = VERIFICATION_TIERS[profile.verificationTier];
-        const icon = profile.badgeIcon || tier?.icon || '✓';
-        const color = profile.badgeColor || tier?.color || '#0ea5e9';
-        const title = tier ? `${tier.name} — مستخدم مشهور` : 'مستخدم مشهور';
-        return `<span class="user-badge user-badge--verified" style="background:${escapeAttr(color)}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">${icon}</span>`;
+        const color = profile.badgeColor || tier?.color || '#94a3b8';
+        const title = tier?.description || (tier ? tier.name : 'حساب موثق');
+        return `<span class="user-badge user-badge--verified" style="--badge-color:${escapeAttr(color)}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">${CHECK_SVG}</span>`;
     }
 
     /** Full badge group (crown + verified, in that order) as an HTML string. Safe to inject even when profile is null/undefined — returns ''. */

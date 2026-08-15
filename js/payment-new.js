@@ -18,9 +18,9 @@ const paymentConfig = {
     paypalLink: '', // TODO: add the real PayPal.me / checkout link
     
     plans: {
-        free: { name: 'مجاني', price: 0, currency: 'ر.س' },
-        premium: { name: 'بريميوم', price: 29, currency: 'ر.س' },
-        creator: { name: 'منشئ محتوى', price: 79, currency: 'ر.س' }
+        free: { name: 'مجاني', price: 0, currency: 'ج.م' },
+        premium: { name: 'بريميوم', price: 50, currency: 'ج.م' },
+        creator: { name: 'منشئ محتوى', price: 100, currency: 'ج.م' }
     },
     
     currentPlan: 'premium'
@@ -473,7 +473,7 @@ function showSuccessModal(data) {
     const orderIdEl = document.getElementById('successOrderIdNew');
     
     if (planNameEl) planNameEl.textContent = data.planName;
-    if (amountEl) amountEl.textContent = `${data.planPrice} ر.س`;
+    if (amountEl) amountEl.textContent = `${data.planPrice} ${paymentConfig.plans[paymentConfig.currentPlan]?.currency || 'ج.م'}`;
     if (orderIdEl) orderIdEl.textContent = `#${data.orderId}`;
     
     // Show modal

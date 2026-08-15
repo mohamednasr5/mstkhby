@@ -9,13 +9,13 @@
     <!-- Icons (admin isn't a PWA install target, so no manifest link here —
          just the browser-tab favicon set) -->
     <meta name="theme-color" content="#0ea5e9">
-    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
-    <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/icon-16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="/assets/icons/icon-48.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/x-icon" href="../assets/icons/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="../assets/icons/favicon.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/icon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="../assets/icons/icon-48.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="../assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,7 +41,7 @@
                 <span>الدخول بحساب جوجل</span>
             </button>
             <p id="adminAuthError" class="admin-auth-error" hidden></p>
-            <a href="/" class="admin-auth-back">العودة إلى الموقع</a>
+            <a href="../index.html" class="admin-auth-back">العودة إلى الموقع</a>
         </div>
     </div>
 
@@ -50,7 +50,7 @@
         <!-- Sidebar -->
         <aside class="admin-sidebar" id="adminSidebar">
             <div class="sidebar-header">
-                <a href="/" class="admin-logo">
+                <a href="../index.html" class="admin-logo">
                     <span>🤫</span>
                     <span>مستخبي</span>
                 </a>
@@ -84,7 +84,6 @@
                             <span class="nav-icon">🚩</span>
                             <span>البلاغات</span>
                             <span class="nav-badge danger" id="sidebarReportsBadge" hidden>0</span>
-<<<<<<< HEAD
                         </a>
                     </li>
                     <li>
@@ -92,8 +91,6 @@
                             <span class="nav-icon">✔️</span>
                             <span>طلبات التوثيق</span>
                             <span class="nav-badge warning" id="sidebarVerificationsBadge" hidden>0</span>
-=======
->>>>>>> 34786a97004692c0d2790a5c115ae43efb25225d
                         </a>
                     </li>
                     <li>
@@ -118,7 +115,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <a href="/" class="back-to-site">
+                <a href="../index.html" class="back-to-site">
                     <span>↗️</span>
                     <span>العودة للموقع</span>
                 </a>
@@ -645,9 +642,9 @@
                     <span>
                         <select id="udVerificationSelect" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;">
                             <option value="none">بدون توثيق</option>
-                            <option value="basic">✓ موثق أساسي (أزرق)</option>
-                            <option value="influencer">⭐ مؤثر موثق (بنفسجي)</option>
-                            <option value="celebrity">👑 مشهور موثق (ذهبي)</option>
+                            <option value="basic">✓ متفاعل (رمادي)</option>
+                            <option value="influencer">✓ مؤثر (ذهبي)</option>
+                            <option value="celebrity">✓ مشهور (أزرق)</option>
                         </select>
                         <button class="btn btn-primary btn-sm" id="udSaveVerificationBtn" style="margin-right:6px;">💾 حفظ التوثيق</button>
                     </span>

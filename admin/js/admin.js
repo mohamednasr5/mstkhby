@@ -438,7 +438,6 @@ class AdminDashboard {
             this.setSidebarBadge(this.elements.sidebarMessagesBadge, totalMessages);
             this.setSidebarBadge(this.elements.sidebarReportsBadge, pendingCount);
 
-<<<<<<< HEAD
             // Pending verification requests were previously invisible — there
             // was no admin UI at all for the applications js/verification.js
             // already collects. Surface a live count in the sidebar.
@@ -446,8 +445,6 @@ class AdminDashboard {
                 .then(snap => this.updateVerificationsBadge(snap.numChildren()))
                 .catch(err => console.warn('verifications count failed:', err));
 
-=======
->>>>>>> 34786a97004692c0d2790a5c115ae43efb25225d
         } catch (error) {
             console.error('Error loading dashboard:', error);
             this.showToast('خطأ', 'تعذر تحميل بيانات لوحة المعلومات من قاعدة البيانات', 'error');
@@ -864,9 +861,9 @@ class AdminDashboard {
     async setUserVerificationTier(userId, tierKey) {
         try {
             const tiers = window.verificationService?.verificationTiers || {
-                basic: { name: 'موثق أساسي', icon: '✓', color: '#0ea5e9' },
-                influencer: { name: 'مؤثر موثق', icon: '⭐', color: '#8b5cf6' },
-                celebrity: { name: 'مشهور موثق', icon: '👑', color: '#f59e0b' }
+                basic: { name: 'متفاعل', icon: '✓', color: '#94a3b8' },
+                influencer: { name: 'مؤثر', icon: '✓', color: '#f59e0b' },
+                celebrity: { name: 'مشهور', icon: '✓', color: '#0ea5e9' }
             };
             const now = Date.now();
             let updates;
@@ -909,6 +906,7 @@ class AdminDashboard {
             await this.database.ref(`users/${userId}/warnings`).push({
                 reason: reason || 'مخالفة قواعد المنصة',
                 createdAt: firebase.database.ServerValue.TIMESTAMP,
+                acknowledged: false,
                 by: (window.MstkhbyFirebase?.auth || firebase.auth()).currentUser?.email || 'admin'
             });
             this.showToast('تم الإرسال', 'تم تسجيل التحذير للمستخدم', 'success');

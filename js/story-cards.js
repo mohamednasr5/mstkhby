@@ -191,13 +191,17 @@ class StoryCardsService {
                 const x1 = centerX - Math.cos(radian) * length;
                 const y1 = centerY - Math.sin(radian) * length;
                 const x2 = centerX + Math.cos(radian) * length;
-                y2 = centerY + Math.sin(radian) * length;
+                const y2 = centerY + Math.sin(radian) * length;
 
                 const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
                 
                 colors.forEach((colorStop, index) => {
-                    const [color, position] = color.split(' ');
-                    gradient.addColorStop(parseFloat(position || (index / (colors.length - 1))), color);
+                    const [color, position] = colorStop.split(' ');
+                    // "100%" -> 1.0, not 100 — addColorStop requires 0.0-1.0
+                    const stop = position
+                        ? parseFloat(position) / 100
+                        : index / (colors.length - 1);
+                    gradient.addColorStop(stop, color);
                 });
 
                 ctx.fillStyle = gradient;
