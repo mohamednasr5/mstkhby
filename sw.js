@@ -11,7 +11,7 @@
 // GitHub Pages project sites at username.github.io/repo/) — root-absolute
 // URLs there 404 against the account root, which made cache.addAll() fail
 // and the whole install step throw, so the PWA never became installable.
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `mstkhby-static-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
