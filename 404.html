@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>مستخبي</title>
+  <script>
+    // GitHub Pages لا يدعم أي رواتينج من جانب السيرفر — أي مسار غير
+    // موجود كملف فعلي (زي /mohamednasrofficial) بيوصل هنا تلقائياً.
+    // بنحفظ المسار في sessionStorage ونرجّع المستخدم لـ index.html،
+    // واللي بدوره بيرجّع الرابط النظيف تاني في شريط العنوان ويفتح
+    // صفحة إرسال الرسالة لصاحب اليوزرنيم ده مباشرة.
+    var path = location.pathname.replace(/^\//, '') + location.search;
+    if (path && path !== 'index.html') {
+      sessionStorage.setItem('mstkhby_redirect_path', path);
+    }
+    location.replace('/');
+  </script>
+</head>
+<body>
+  <p>جارِ التحويل...</p>
+</body>
+</html>

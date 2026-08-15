@@ -398,7 +398,7 @@ class StoryCardsService {
         // Profile URL
         ctx.font = '18px Cairo';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.fillText('mstkhby.com/#' + recipientName, x + 400, y + 30);
+        ctx.fillText('mstkhby.com/' + recipientName, x + 400, y + 30);
 
         ctx.restore();
     }
