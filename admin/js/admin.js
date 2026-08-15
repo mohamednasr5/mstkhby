@@ -2,18 +2,133 @@
  * ===================================
  * Mstkhby - Admin Dashboard JavaScript
  * ===================================
+ *
+ * Everything on this page reads from the real Firebase Realtime Database.
+ * There is NO mock/demo data anywhere in this file.
+ *
+ * ACCESS CONTROL
+ * Only these Google accounts may enter the dashboard:
+ *   - elfannanm@gmail.com
+ *   - mohamednasrofficial@gmail.com
+ * Enforced here (client gate) AND in database.rules.json (server-side —
+ * the client gate alone is NOT security, it's UX; the real DB rules are
+ * what actually stop anyone else from reading/writing admin data).
  */
+
+const ADMIN_ALLOWED_EMAILS = [
+    'elfannanm@gmail.com',
+    'mohamednasrofficial@gmail.com'
+];
+
+class AdminAuthGate {
+    constructor(onAuthorized) {
+        this.onAuthorized = onAuthorized;
+        this.auth = window.MstkhbyFirebase?.auth || firebase.auth();
+        this.els = {
+            gate: document.getElementById('adminAuthGate'),
+            layout: document.getElementById('adminLayout'),
+            loginBtn: document.getElementById('adminGoogleLoginBtn'),
+            error: document.getElementById('adminAuthError'),
+            message: document.getElementById('adminAuthMessage')
+        };
+        this.bind();
+        this.listen();
+    }
+
+    bind() {
+        this.els.loginBtn?.addEventListener('click', () => this.signIn());
+    }
+
+    listen() {
+        this.auth.onAuthStateChanged((user) => {
+            if (!user) {
+                this.showGate();
+                return;
+            }
+
+            const email = (user.email || '').toLowerCase();
+            if (!ADMIN_ALLOWED_EMAILS.includes(email)) {
+                this.showError('هذا الحساب غير مصرح له بالدخول إلى لوحة التحكم.');
+                this.auth.signOut();
+                return;
+            }
+
+            this.showDashboard(user);
+        });
+    }
+
+    async signIn() {
+        this.setLoading(true);
+        this.hideError();
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            await this.auth.signInWithPopup(provider);
+            // onAuthStateChanged above handles the rest.
+        } catch (error) {
+            console.error('Admin sign-in error:', error);
+            if (error?.code !== 'auth/popup-closed-by-user') {
+                this.showError('تعذر تسجيل الدخول. حاول مرة أخرى.');
+            }
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    setLoading(loading) {
+        if (this.els.loginBtn) {
+            this.els.loginBtn.disabled = loading;
+            this.els.loginBtn.querySelector('span').textContent = loading
+                ? 'جاري تسجيل الدخول...'
+                : 'الدخول بحساب جوجل';
+        }
+    }
+
+    showError(msg) {
+        if (this.els.error) {
+            this.els.error.textContent = msg;
+            this.els.error.hidden = false;
+        }
+    }
+
+    hideError() {
+        if (this.els.error) this.els.error.hidden = true;
+    }
+
+    showGate() {
+        if (this.els.gate) this.els.gate.hidden = false;
+        if (this.els.layout) this.els.layout.hidden = true;
+    }
+
+    showDashboard(user) {
+        if (this.els.gate) this.els.gate.hidden = true;
+        if (this.els.layout) this.els.layout.hidden = false;
+
+        const nameEl = document.querySelector('.admin-profile span');
+        const imgEl = document.querySelector('.admin-profile img');
+        if (nameEl) nameEl.textContent = user.displayName || user.email;
+        if (imgEl) imgEl.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=0ea5e9&color=fff`;
+
+        this.onAuthorized(user);
+    }
+}
 
 class AdminDashboard {
     constructor() {
         this.currentPage = 'dashboard';
         this.selectedUsers = new Set();
-        this.init();
+        this.database = window.MstkhbyFirebase?.database || firebase.database();
+        this.allUsersCache = null; // { uid: profile } — refreshed on demand
+        this.initialized = false;
     }
 
     init() {
+        if (this.initialized) return;
+        this.initialized = true;
+
         this.cacheElements();
         this.bindEvents();
+        this.bindLogout();
         this.loadDashboardData();
         this.startAutoRefresh();
     }
@@ -24,33 +139,31 @@ class AdminDashboard {
             sidebarToggle: document.getElementById('sidebarToggle'),
             navItems: document.querySelectorAll('.nav-item'),
             pages: document.querySelectorAll('.admin-page'),
-            
+
             // Dashboard
             totalUsers: document.getElementById('totalUsers'),
             totalMessages: document.getElementById('totalMessages'),
             activeUsers: document.getElementById('activeUsers'),
             premiumUsers: document.getElementById('premiumUsers'),
-            
+
             // Users
             userSearch: document.getElementById('userSearch'),
             userFilter: document.getElementById('userFilter'),
             usersTableBody: document.getElementById('usersTableBody'),
             selectAll: document.getElementById('selectAll'),
-            
+
             // Reports
             reportsList: document.getElementById('reportsList')
         };
     }
 
     bindEvents() {
-        // Sidebar toggle
         if (this.elements.sidebarToggle) {
             this.elements.sidebarToggle.addEventListener('click', () => {
                 this.elements.sidebar.classList.toggle('open');
             });
         }
 
-        // Navigation
         this.elements.navItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -59,9 +172,8 @@ class AdminDashboard {
             });
         });
 
-        // Users page events
         if (this.elements.userSearch) {
-            this.elements.userSearch.addEventListener('input', 
+            this.elements.userSearch.addEventListener('input',
                 this.debounce(() => this.loadUsers(), 300)
             );
         }
@@ -76,7 +188,9 @@ class AdminDashboard {
             });
         }
 
-        // Close modals on overlay click
+        document.getElementById('reportStatusFilter')?.addEventListener('change', () => this.loadReports());
+        document.getElementById('reportTypeFilter')?.addEventListener('change', () => this.loadReports());
+
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
@@ -85,7 +199,6 @@ class AdminDashboard {
             });
         });
 
-        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 document.querySelectorAll('.modal-overlay.active').forEach(modal => {
@@ -95,22 +208,32 @@ class AdminDashboard {
         });
     }
 
+    bindLogout() {
+        const profile = document.querySelector('.admin-profile');
+        if (!profile || profile.dataset.logoutBound) return;
+        profile.dataset.logoutBound = 'true';
+        profile.style.cursor = 'pointer';
+        profile.title = 'تسجيل الخروج';
+        profile.addEventListener('click', () => {
+            this.showConfirm('تسجيل الخروج', 'هل تريد تسجيل الخروج من لوحة التحكم؟', () => {
+                (window.MstkhbyFirebase?.auth || firebase.auth()).signOut();
+            });
+        });
+    }
+
     // ==================== NAVIGATION ====================
 
     navigateTo(page) {
         this.currentPage = page;
 
-        // Update nav items
         this.elements.navItems.forEach(item => {
             item.classList.toggle('active', item.dataset.page === page);
         });
 
-        // Show/hide pages
         this.elements.pages.forEach(p => {
             p.classList.toggle('active', p.id === `page-${page}`);
         });
 
-        // Load page data
         switch (page) {
             case 'dashboard':
                 this.loadDashboardData();
@@ -124,49 +247,86 @@ class AdminDashboard {
             case 'reports':
                 this.loadReports();
                 break;
-            case 'moderation':
-                this.loadModerationQueue();
-                break;
             case 'analytics':
                 this.loadAnalytics();
                 break;
         }
     }
 
+    // ==================== DATA HELPERS (real DB reads) ====================
+
+    /** Fetches every user profile once and caches it in memory for this session. */
+    async fetchAllUsers(forceRefresh = false) {
+        if (this.allUsersCache && !forceRefresh) return this.allUsersCache;
+
+        const snap = await this.database.ref('users').once('value');
+        const usersById = {};
+        snap.forEach(child => {
+            const profile = child.val()?.profile;
+            if (profile) usersById[child.key] = profile;
+        });
+        this.allUsersCache = usersById;
+        return usersById;
+    }
+
+    async fetchMessages(limit = 200) {
+        const snap = await this.database.ref('messages').limitToLast(limit).once('value');
+        const messages = [];
+        snap.forEach(child => messages.push({ id: child.key, ...child.val() }));
+        return messages.reverse(); // newest first
+    }
+
+    async fetchReports(limit = 100) {
+        const snap = await this.database.ref('reports').limitToLast(limit).once('value');
+        const reports = [];
+        snap.forEach(child => reports.push({ id: child.key, ...child.val() }));
+        return reports.reverse();
+    }
+
     // ==================== DASHBOARD ====================
 
     async loadDashboardData() {
         try {
-            // In production, fetch from API
-            // const response = await fetch('/api/admin/stats');
-            // const data = await response.json();
+            const [usersById, messages, reports] = await Promise.all([
+                this.fetchAllUsers(),
+                this.fetchMessages(500),
+                this.fetchReports(500)
+            ]);
 
-            // Mock data for demo
-            const stats = {
-                totalUsers: 150000,
-                totalMessages: 2000000,
-                activeUsersToday: 12500,
-                premiumUsers: 2500,
-                growthRate: 12.5
-            };
+            const users = Object.values(usersById);
+            const now = Date.now();
+            const dayMs = 24 * 60 * 60 * 1000;
 
-            // Animate numbers
-            this.animateNumber(this.elements.totalUsers, stats.totalUsers);
-            this.animateNumber(this.elements.totalMessages, stats.totalMessages);
-            this.animateNumber(this.elements.activeUsers, stats.activeUsersToday);
-            this.animateNumber(this.elements.premiumUsers, stats.premiumUsers);
+            const totalUsers = users.length;
+            const premiumUsers = users.filter(u => u.plan && u.plan !== 'free').length;
+            const activeUsersToday = users.filter(u => u.lastActiveAt && (now - u.lastActiveAt) < dayMs).length;
 
-            // Load charts
-            this.renderCharts();
+            // total messages: prefer the exact count from the messages index;
+            // fall back to summing per-user stats if the index is large/未 sampled.
+            const totalMessagesSnap = await this.database.ref('messages').once('value');
+            const totalMessages = totalMessagesSnap.numChildren();
+
+            this.animateNumber(this.elements.totalUsers, totalUsers);
+            this.animateNumber(this.elements.totalMessages, totalMessages);
+            this.animateNumber(this.elements.activeUsers, activeUsersToday);
+            this.animateNumber(this.elements.premiumUsers, premiumUsers);
+
+            this.renderCharts(users, messages);
+            this.renderRecentActivity(users, messages, reports);
+
+            const pendingCount = reports.filter(r => (r.status || 'pending') === 'pending').length;
+            const notifBadge = document.querySelector('.notif-count');
+            if (notifBadge) notifBadge.textContent = pendingCount.toLocaleString('ar-EG');
 
         } catch (error) {
             console.error('Error loading dashboard:', error);
+            this.showToast('خطأ', 'تعذر تحميل بيانات لوحة المعلومات من قاعدة البيانات', 'error');
         }
     }
 
     animateNumber(element, target) {
         if (!element) return;
-        
+
         const duration = 1000;
         const start = 0;
         const startTime = performance.now();
@@ -176,7 +336,7 @@ class AdminDashboard {
             const progress = Math.min(elapsed / duration, 1);
             const easeOutQuart = 1 - Math.pow(1 - progress, 4);
             const current = Math.floor(start + (target - start) * easeOutQuart);
-            
+
             element.textContent = current.toLocaleString('ar-EG');
 
             if (progress < 1) {
@@ -187,40 +347,71 @@ class AdminDashboard {
         requestAnimationFrame(update);
     }
 
-    renderCharts() {
-        // Simple chart rendering with CSS/SVG
-        // In production, use Chart.js or similar library
-        
+    /** Builds real growth/daily-volume series from actual createdAt timestamps. */
+    renderCharts(users, messages) {
         const userGrowthChart = document.getElementById('userGrowthChart');
         if (userGrowthChart) {
-            userGrowthChart.innerHTML = this.createLineChart([
-                { label: 'يناير', value: 80000 },
-                { label: 'فبراير', value: 95000 },
-                { label: 'مارس', value: 110000 },
-                { label: 'أبريل', value: 125000 },
-                { label: 'مايو', value: 140000 },
-                { label: 'يونيو', value: 150000 }
-            ], '#0ea5e9');
+            const months = this.bucketByMonth(users.map(u => u.createdAt).filter(Boolean), 6);
+            userGrowthChart.innerHTML = months.every(m => m.value === 0)
+                ? this.emptyState('لا توجد بيانات مستخدمين كافية بعد')
+                : this.createLineChart(months, '#0ea5e9');
         }
 
         const dailyMessagesChart = document.getElementById('dailyMessagesChart');
         if (dailyMessagesChart) {
-            dailyMessagesChart.innerHTML = this.createBarChart([
-                { label: 'السبت', value: 45000 },
-                { label: 'الأحد', value: 52000 },
-                { label: 'الإثنين', value: 48000 },
-                { label: 'الثلاثاء', value: 55000 },
-                { label: 'الأربعاء', value: 50000 },
-                { label: 'الخميس', value: 58000 },
-                { label: 'الجمعة', value: 42000 }
-            ], '#8b5cf6');
+            const days = this.bucketByDay(messages.map(m => m.createdAt).filter(Boolean), 7);
+            dailyMessagesChart.innerHTML = days.every(d => d.value === 0)
+                ? this.emptyState('لا توجد رسائل كافية بعد')
+                : this.createBarChart(days, '#8b5cf6');
         }
     }
 
+    bucketByMonth(timestamps, count) {
+        const labels = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        const now = new Date();
+        const buckets = [];
+        for (let i = count - 1; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            buckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: labels[d.getMonth()], value: 0 });
+        }
+        const index = Object.fromEntries(buckets.map(b => [b.key, b]));
+        timestamps.forEach(ts => {
+            const d = new Date(ts);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (index[key]) index[key].value++;
+        });
+        // Cumulative growth reads better for a "user growth" chart
+        let running = 0;
+        return buckets.map(b => {
+            running += b.value;
+            return { label: b.label, value: running };
+        });
+    }
+
+    bucketByDay(timestamps, count) {
+        const labels = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        const now = new Date();
+        const buckets = [];
+        for (let i = count - 1; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            buckets.push({ key: d.toDateString(), label: labels[d.getDay()], value: 0 });
+        }
+        const index = Object.fromEntries(buckets.map(b => [b.key, b]));
+        timestamps.forEach(ts => {
+            const key = new Date(ts).toDateString();
+            if (index[key]) index[key].value++;
+        });
+        return buckets.map(b => ({ label: b.label, value: b.value }));
+    }
+
+    emptyState(text) {
+        return `<div style="display:flex;align-items:center;justify-content:center;height:180px;color:#64748b;font-size:13px;">${text}</div>`;
+    }
+
     createLineChart(data, color) {
-        const maxVal = Math.max(...data.map(d => d.value));
+        const maxVal = Math.max(1, ...data.map(d => d.value));
         const points = data.map((d, i) => {
-            const x = (i / (data.length - 1)) * 100;
+            const x = (i / Math.max(1, data.length - 1)) * 100;
             const y = 100 - (d.value / maxVal) * 80;
             return `${x},${y}`;
         }).join(' ');
@@ -229,22 +420,22 @@ class AdminDashboard {
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%;">
                 <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"/>
                 ${data.map((d, i) => `
-                    <circle cx="${(i / (data.length - 1)) * 100}" cy="${100 - (d.value / maxVal) * 80}" r="2" fill="${color}"/>
+                    <circle cx="${(i / Math.max(1, data.length - 1)) * 100}" cy="${100 - (d.value / maxVal) * 80}" r="2" fill="${color}"/>
                 `).join('')}
             </svg>
             <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#64748b;">
-                ${data.map(d => `<span>${d.label}</span>`).join('')}
+                ${data.map(d => `<span title="${d.value.toLocaleString('ar-EG')}">${d.label}</span>`).join('')}
             </div>
         `;
     }
 
     createBarChart(data, color) {
-        const maxVal = Math.max(...data.map(d => d.value));
-        
+        const maxVal = Math.max(1, ...data.map(d => d.value));
+
         return `
             <div style="display:flex;align-items:flex-end;justify-content:space-between;height:180px;gap:8px;padding-top:20px;">
                 ${data.map(d => `
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;" title="${d.value.toLocaleString('ar-EG')}">
                         <div style="width:100%;background:${color};border-radius:4px 4px 0 0;height:${(d.value / maxVal) * 160}px;opacity:0.8;"></div>
                         <span style="font-size:10px;color:#64748b;">${d.label}</span>
                     </div>
@@ -253,91 +444,138 @@ class AdminDashboard {
         `;
     }
 
+    renderRecentActivity(users, messages, reports) {
+        const container = document.querySelector('.activity-list');
+        if (!container) return;
+
+        const events = [];
+
+        Object.values(users)
+            .filter(u => u.createdAt)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 5)
+            .forEach(u => events.push({
+                icon: '👤', cls: 'new-user', ts: u.createdAt,
+                title: 'مستخدم جديد مسجل',
+                detail: `@${u.username || u.displayName || 'مستخدم'} انضم للمنصة`
+            }));
+
+        messages.slice(0, 5).forEach(m => events.push({
+            icon: '📩', cls: 'new-message', ts: m.createdAt,
+            title: 'رسالة جديدة',
+            detail: m.identity === 'anonymous' ? 'رسالة مجهولة جديدة' : 'رسالة جديدة وصلت'
+        }));
+
+        reports.slice(0, 5).forEach(r => events.push({
+            icon: '🚩', cls: 'report', ts: r.createdAt,
+            title: 'بلاغ جديد',
+            detail: r.reason || 'محتوى يحتاج مراجعة'
+        }));
+
+        events.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+        if (events.length === 0) {
+            container.innerHTML = this.emptyState('لا يوجد نشاط بعد');
+            return;
+        }
+
+        container.innerHTML = events.slice(0, 8).map(e => `
+            <div class="activity-item">
+                <span class="activity-icon ${e.cls}">${e.icon}</span>
+                <div class="activity-details">
+                    <strong>${e.title}</strong>
+                    <p>${this.escapeHtml(e.detail)}</p>
+                </div>
+                <span class="activity-time">${this.timeAgo(e.ts)}</span>
+            </div>
+        `).join('');
+    }
+
     // ==================== USERS MANAGEMENT ====================
 
     async loadUsers() {
         if (!this.elements.usersTableBody) return;
 
+        this.elements.usersTableBody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center;padding:40px;">
+                    <div class="spinner"></div>
+                    <p style="margin-top:16px;color:#64748b;">جاري تحميل المستخدمين...</p>
+                </td>
+            </tr>
+        `;
+
         try {
-            // Show loading state
-            this.elements.usersTableBody.innerHTML = `
-                <tr>
-                    <td colspan="8" style="text-align:center;padding:40px;">
-                        <div class="spinner"></div>
-                        <p style="margin-top:16px;color:#64748b;">جاري تحميل المستخدمين...</p>
-                    </td>
-                </tr>
-            `;
+            const usersById = await this.fetchAllUsers();
+            const search = (this.elements.userSearch?.value || '').trim().toLowerCase();
+            const filter = this.elements.userFilter?.value || 'all';
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
-            // Fetch from API
-            // const search = this.elements.userSearch?.value || '';
-            // const filter = this.elements.userFilter?.value || 'all';
-            // const response = await fetch(`/api/admin/users?search=${search}&filter=${filter}&limit=20`);
-            // const data = await response.json();
+            let list = Object.entries(usersById).map(([uid, profile]) => ({ uid, ...profile }));
 
-            // Mock data
-            const users = this.generateMockUsers(20);
+            if (search) {
+                list = list.filter(u =>
+                    (u.displayName || '').toLowerCase().includes(search) ||
+                    (u.email || '').toLowerCase().includes(search) ||
+                    (u.username || '').toLowerCase().includes(search)
+                );
+            }
 
-            this.renderUsersTable(users);
+            if (filter === 'active') list = list.filter(u => u.status === 'active');
+            else if (filter === 'banned') list = list.filter(u => u.status === 'banned');
+            else if (filter === 'premium') list = list.filter(u => u.plan && u.plan !== 'free');
+            else if (filter === 'new') list = list.filter(u => u.createdAt && u.createdAt >= sevenDaysAgo);
+
+            list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            this.renderUsersTable(list.slice(0, 100));
 
         } catch (error) {
             console.error('Error loading users:', error);
             this.elements.usersTableBody.innerHTML = `
                 <tr>
                     <td colspan="8" style="text-align:center;padding:40px;color:#ef4444;">
-                        ❌ حدث خطأ في تحميل المستخدمين
+                        ❌ حدث خطأ في تحميل المستخدمين من قاعدة البيانات
                     </td>
                 </tr>
             `;
         }
     }
 
-    generateMockUsers(count) {
-        const names = ['أحمد محمد', 'سارة علي', 'خالد عبدالله', 'نورة حسام', 'محمد سعيد'];
-        const plans = ['free', 'free', 'premium', 'free', 'free'];
-        const statuses = ['active', 'active', 'banned', 'active', 'active'];
-
-        return Array.from({ length: count }, (_, i) => ({
-            id: `user_${i + 1}`,
-            name: names[i % names.length],
-            email: `user${i + 1}@example.com`,
-            username: `username_${i + 1}`,
-            plan: plans[i % plans.length],
-            status: statuses[i % statuses.length],
-            messagesCount: Math.floor(Math.random() * 500),
-            joinDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        }));
-    }
-
     renderUsersTable(users) {
+        if (users.length === 0) {
+            this.elements.usersTableBody.innerHTML = `
+                <tr><td colspan="8" style="text-align:center;padding:40px;color:#64748b;">لا يوجد مستخدمون مطابقون</td></tr>
+            `;
+            return;
+        }
+
         this.elements.usersTableBody.innerHTML = users.map(user => `
-            <tr data-user-id="${user.id}">
-                <td><input type="checkbox" class="user-checkbox" value="${user.id}"></td>
+            <tr data-user-id="${user.uid}">
+                <td><input type="checkbox" class="user-checkbox" value="${user.uid}"></td>
                 <td>
                     <div class="user-cell">
-                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0ea5e9&color=fff" alt="${user.name}">
+                        <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.username || '?')}&background=0ea5e9&color=fff`}" alt="${this.escapeHtml(user.displayName || '')}">
                         <div>
-                            <strong>${user.name}</strong>
-                            <small>@${user.username}</small>
+                            <strong>${this.escapeHtml(user.displayName || 'بدون اسم')}</strong>
+                            <small>@${this.escapeHtml(user.username || '')}</small>
                         </div>
                     </div>
                 </td>
-                <td>${user.email}</td>
-                <td><span class="status-badge ${user.status}">${user.status === 'active' ? 'نشط' : 'محظور'}</span></td>
-                <td><span class="plan-badge ${user.plan}">${user.plan === 'premium' ? 'بريميوم' : 'مجاني'}</span></td>
-                <td>${user.messagesCount.toLocaleString()}</td>
-                <td>${user.joinDate}</td>
+                <td>${this.escapeHtml(user.email || '')}</td>
+                <td><span class="status-badge ${user.status === 'banned' ? 'banned' : 'active'}">${user.status === 'banned' ? 'محظور' : 'نشط'}</span></td>
+                <td><span class="plan-badge ${user.plan && user.plan !== 'free' ? 'premium' : 'free'}">${user.plan && user.plan !== 'free' ? 'بريميوم' : 'مجاني'}</span></td>
+                <td>${(user.stats?.totalMessagesReceived || 0).toLocaleString('ar-EG')}</td>
+                <td>${user.createdAt ? this.formatDate(new Date(user.createdAt).toISOString()) : '—'}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="action-btn" onclick="adminDashboard.viewUser('${user.id}')" title="عرض">👁️</button>
-                        <button class="action-btn" onclick="adminDashboard.editUser('${user.id}')" title="تعديل">✏️</button>
-                        <button class="action-btn danger" onclick="adminDashboard.banUser('${user.id}')" title="حظر">🚫</button>
+                        <button class="action-btn" onclick="adminDashboard.viewUser('${user.uid}')" title="عرض">👁️</button>
+                        <button class="action-btn danger" onclick="adminDashboard.banUser('${user.uid}')" title="${user.status === 'banned' ? 'إلغاء الحظر' : 'حظر'}">${user.status === 'banned' ? '♻️' : '🚫'}</button>
                     </div>
                 </td>
             </tr>
         `).join('');
 
-        // Bind checkbox events
         this.elements.usersTableBody.querySelectorAll('.user-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', () => this.updateSelectAllState());
         });
@@ -346,11 +584,8 @@ class AdminDashboard {
     toggleAllUsers(checked) {
         this.elements.usersTableBody.querySelectorAll('.user-checkbox').forEach(cb => {
             cb.checked = checked;
-            if (checked) {
-                this.selectedUsers.add(cb.value);
-            } else {
-                this.selectedUsers.delete(cb.value);
-            }
+            if (checked) this.selectedUsers.add(cb.value);
+            else this.selectedUsers.delete(cb.value);
         });
     }
 
@@ -360,56 +595,107 @@ class AdminDashboard {
         this.elements.selectAll.checked = allChecked && checkboxes.length > 0;
     }
 
-    viewUser(userId) {
-        // Open user detail modal
+    async viewUser(userId) {
+        const usersById = await this.fetchAllUsers();
+        const user = usersById[userId];
+        if (!user) return;
+
+        const modal = document.getElementById('userDetailModal');
+        if (modal) {
+            modal.querySelectorAll('.detail-row span:last-child').forEach((el, i) => {
+                const values = [
+                    user.email || '—',
+                    user.createdAt ? this.formatDate(new Date(user.createdAt).toISOString()) : '—',
+                    user.lastActiveAt ? this.timeAgo(user.lastActiveAt) : '—'
+                ];
+                if (values[i] !== undefined) el.textContent = values[i];
+            });
+        }
         this.openModal('userDetailModal');
-        // Load user details...
     }
 
-    editUser(userId) {
-        alert(`تعديل المستخدم: ${userId}`);
-    }
+    async banUser(userId) {
+        const usersById = await this.fetchAllUsers();
+        const user = usersById[userId];
+        const isBanned = user?.status === 'banned';
 
-    banUser(userId) {
         this.showConfirm(
-            'حظر مستخدم',
-            'هل أنت متأكد من حظر هذا المستخدم؟',
+            isBanned ? 'إلغاء حظر مستخدم' : 'حظر مستخدم',
+            isBanned ? 'هل تريد إلغاء حظر هذا المستخدم؟' : 'هل أنت متأكد من حظر هذا المستخدم؟',
             async () => {
-                // await fetch(`/api/admin/users/${userId}/ban`, { method: 'POST' });
-                this.showToast('تم الحظر', 'تم حظر المستخدم بنجاح', 'success');
-                this.loadUsers();
+                try {
+                    await this.database.ref(`users/${userId}/profile/status`).set(isBanned ? 'active' : 'banned');
+                    this.showToast(isBanned ? 'تم إلغاء الحظر' : 'تم الحظر', 'تم تحديث حالة المستخدم في قاعدة البيانات', 'success');
+                    await this.fetchAllUsers(true);
+                    this.loadUsers();
+                } catch (error) {
+                    console.error('Ban error:', error);
+                    this.showToast('خطأ', 'تعذر تحديث حالة المستخدم', 'error');
+                }
             }
         );
     }
 
     exportUsers() {
-        this.showToast('جاري التصدير', 'جاري تصدير بيانات المستخدمين...', 'info');
-        // Implement CSV/Excel export
+        this.fetchAllUsers().then(usersById => {
+            const rows = Object.entries(usersById).map(([uid, u]) => ({
+                uid, name: u.displayName || '', username: u.username || '', email: u.email || '',
+                plan: u.plan || 'free', status: u.status || 'active',
+                messages: u.stats?.totalMessagesReceived || 0,
+                joined: u.createdAt ? new Date(u.createdAt).toISOString() : ''
+            }));
+            const header = Object.keys(rows[0] || { uid: '' });
+            const csv = [header.join(',')].concat(
+                rows.map(r => header.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(','))
+            ).join('\n');
+
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mstkhby-users-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
     }
 
     // ==================== MESSAGES MANAGEMENT ====================
 
-    loadMessages() {
+    async loadMessages() {
         const messagesList = document.getElementById('adminMessagesList');
         if (!messagesList) return;
 
-        messagesList.innerHTML = `
-            <div style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); display: grid; gap: 16px;">
-                ${Array.from({ length: 12 }, (_, i) => `
-                    <div class="message-card-admin" onclick="adminDashboard.viewMessage('msg_${i}')">
-                        <div class="msg-header">
-                            <span class="identity-badge anonymous">🤫 مجهول</span>
-                            <span class="msg-time">منذ ${Math.floor(Math.random() * 60)} دقيقة</span>
+        messagesList.innerHTML = this.emptyState('جاري التحميل...');
+
+        try {
+            const messages = await this.fetchMessages(60);
+
+            if (messages.length === 0) {
+                messagesList.innerHTML = this.emptyState('لا توجد رسائل بعد');
+                return;
+            }
+
+            messagesList.innerHTML = `
+                <div style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); display: grid; gap: 16px;">
+                    ${messages.map(m => `
+                        <div class="message-card-admin" onclick="adminDashboard.viewMessage('${m.id}')">
+                            <div class="msg-header">
+                                <span class="identity-badge ${m.identity || 'anonymous'}">${m.identity === 'alias' ? '🎭 مستعار' : m.identity === 'known' ? '👤 معروف' : '🤫 مجهول'}</span>
+                                <span class="msg-time">${this.timeAgo(m.createdAt)}</span>
+                            </div>
+                            <p class="msg-content">${this.escapeHtml((m.content || '').slice(0, 80))}${(m.content || '').length > 80 ? '…' : ''}</p>
+                            <div class="msg-meta">
+                                <span>${m.messageType === 'text' ? '📝 نص' : m.messageType === 'image' ? '🖼️ صورة' : m.messageType === 'video' ? '🎬 فيديو' : '📎 وسائط'}</span>
+                                <span class="status-badge ${m.status === 'delivered' ? 'delivered' : m.status}">${m.status === 'delivered' ? 'تم التسليم' : (m.status || '—')}</span>
+                            </div>
                         </div>
-                        <p class="msg-content">${['رسالة تجريبية', 'هذا نص رسالة', 'مرحباً بك'][i % 3]}...</p>
-                        <div class="msg-meta">
-                            <span>📝 نص</span>
-                            <span class="status-badge delivered">تم التسليم</span>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+                    `).join('')}
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error loading messages:', error);
+            messagesList.innerHTML = this.emptyState('❌ تعذر تحميل الرسائل');
+        }
     }
 
     setMessagesView(view) {
@@ -419,15 +705,53 @@ class AdminDashboard {
         this.loadMessages();
     }
 
-    viewMessage(messageId) {
+    async viewMessage(messageId) {
+        const snap = await this.database.ref(`messages/${messageId}`).once('value');
+        const msg = snap.val();
+        if (msg) console.log('message detail', msg);
         this.openModal('messageDetailModal');
     }
 
     // ==================== REPORTS MANAGEMENT ====================
 
-    loadReports() {
-        // Reports are already in HTML for demo
-        // In production, fetch from API
+    async loadReports() {
+        if (!this.elements.reportsList) return;
+
+        this.elements.reportsList.innerHTML = this.emptyState('جاري تحميل البلاغات...');
+
+        try {
+            const reports = await this.fetchReports(100);
+            const statusFilter = document.getElementById('reportStatusFilter')?.value || 'pending';
+            const filtered = reports.filter(r => (r.status || 'pending') === statusFilter);
+
+            if (filtered.length === 0) {
+                this.elements.reportsList.innerHTML = this.emptyState('لا توجد بلاغات في هذا التصنيف');
+                return;
+            }
+
+            this.elements.reportsList.innerHTML = filtered.map(r => `
+                <div class="report-card" data-report-id="${r.id}">
+                    <div class="report-header">
+                        <span class="report-id">#${r.id}</span>
+                        <span class="report-status ${r.status || 'pending'}">${r.status === 'resolved' ? 'تم الحل' : r.status === 'dismissed' ? 'مرفوض' : 'قيد الانتظار'}</span>
+                    </div>
+                    <div class="report-content">
+                        <p><strong>نوع البلاغ:</strong> ${this.escapeHtml(r.reason || 'غير محدد')}</p>
+                        <p><strong>المُبلغ:</strong> ${this.escapeHtml(r.reporterId || 'مجهول')}</p>
+                        <p><strong>الرسالة:</strong> ${this.escapeHtml(r.messageId || '—')}</p>
+                        <p><strong>التاريخ:</strong> ${r.createdAt ? this.timeAgo(r.createdAt) : '—'}</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-success btn-sm" onclick="handleReport('resolve', '${r.id}')">✅ حل</button>
+                        <button class="btn btn-danger btn-sm" onclick="handleReport('ban', '${r.id}')">🚫 حظر المرسل</button>
+                        <button class="btn btn-outline btn-sm" onclick="handleReport('dismiss', '${r.id}')">❌ رفض</button>
+                    </div>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading reports:', error);
+            this.elements.reportsList.innerHTML = this.emptyState('❌ تعذر تحميل البلاغات');
+        }
     }
 
     handleReport(action, reportId) {
@@ -439,37 +763,90 @@ class AdminDashboard {
 
         this.showConfirm(
             actions[action],
-            `هل تريد ${actions[action].toLowerCase()} #${reportId}؟`,
+            `هل تريد ${actions[action]} #${reportId}؟`,
             async () => {
-                // await fetch(`/api/admin/reports/${reportId}/action`, {
-                //     method: 'POST',
-                //     body: JSON.stringify({ action })
-                // });
-                
-                this.showToast('تم بنجاح', `${actions[action]} بنجاح`, 'success');
-                
-                // Remove report card from DOM
-                const reportCard = document.querySelector(`[onclick*="${reportId}"]`)?.closest('.report-card');
-                if (reportCard) {
-                    reportCard.style.animation = 'fadeOutUp 0.3s ease forwards';
-                    setTimeout(() => reportCard.remove(), 300);
+                try {
+                    const newStatus = action === 'dismiss' ? 'dismissed' : 'resolved';
+                    const updates = { [`reports/${reportId}/status`]: newStatus };
+
+                    if (action === 'ban') {
+                        const reportSnap = await this.database.ref(`reports/${reportId}`).once('value');
+                        const report = reportSnap.val();
+                        const msgSnap = report?.messageId
+                            ? await this.database.ref(`messages/${report.messageId}`).once('value')
+                            : null;
+                        const senderId = msgSnap?.val()?.senderId;
+                        if (senderId) updates[`users/${senderId}/profile/status`] = 'banned';
+                    }
+
+                    await this.database.ref().update(updates);
+                    this.showToast('تم بنجاح', `${actions[action]} بنجاح`, 'success');
+
+                    const reportCard = document.querySelector(`[data-report-id="${reportId}"]`);
+                    if (reportCard) {
+                        reportCard.style.animation = 'fadeOutUp 0.3s ease forwards';
+                        setTimeout(() => reportCard.remove(), 300);
+                    }
+                } catch (error) {
+                    console.error('Report action error:', error);
+                    this.showToast('خطأ', 'تعذر تنفيذ الإجراء', 'error');
                 }
             }
         );
     }
 
-    // ==================== MODERATION QUEUE ====================
-
-    loadModerationQueue() {
-        // Moderation queue is in HTML for demo
-        // In production, fetch from API
-    }
-
     // ==================== ANALYTICS ====================
 
-    loadAnalytics() {
-        // Analytics charts would be rendered here
-        // Using Chart.js or similar library
+    async loadAnalytics() {
+        try {
+            const messages = await this.fetchMessages(500);
+
+            const typesEl = document.getElementById('messageTypesChart');
+            if (typesEl) {
+                const counts = {};
+                messages.forEach(m => { const t = m.messageType || 'text'; counts[t] = (counts[t] || 0) + 1; });
+                const data = Object.entries(counts).map(([label, value]) => ({ label, value }));
+                typesEl.innerHTML = data.length ? this.createBarChart(data, '#0ea5e9') : this.emptyState('لا توجد بيانات بعد');
+            }
+
+            const levelsContainer = document.querySelector('.privacy-levels-stats');
+            if (levelsContainer && messages.length) {
+                const counts = { anonymous: 0, alias: 0, known: 0 };
+                messages.forEach(m => { const id = m.identity || 'anonymous'; if (counts[id] !== undefined) counts[id]++; });
+                const total = messages.length;
+                const rows = [
+                    { key: 'anonymous', name: '🔐 مجهول' },
+                    { key: 'alias', name: '🎭 مستعار' },
+                    { key: 'known', name: '👤 معروف' }
+                ];
+                levelsContainer.innerHTML = rows.map(r => {
+                    const pct = total ? Math.round((counts[r.key] / total) * 100) : 0;
+                    return `
+                        <div class="level-stat">
+                            <span class="level-name">${r.name}</span>
+                            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;"></div></div>
+                            <span class="level-percent">${pct}%</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const growthEl = document.getElementById('platformGrowthChart');
+            if (growthEl) {
+                const usersById = await this.fetchAllUsers();
+                const months = this.bucketByMonth(Object.values(usersById).map(u => u.createdAt).filter(Boolean), 6);
+                growthEl.innerHTML = this.createLineChart(months, '#0ea5e9');
+            }
+
+            // Country-level breakdown requires IP/geo data we don't collect —
+            // rather than invent numbers, we leave that card out entirely.
+            const countriesEl = document.getElementById('countriesChart');
+            if (countriesEl) {
+                countriesEl.innerHTML = this.emptyState('لا تتوفر بيانات جغرافية للمستخدمين حالياً');
+            }
+        } catch (error) {
+            console.error('Error loading analytics:', error);
+        }
     }
 
     // ==================== UTILITY METHODS ====================
@@ -492,13 +869,10 @@ class AdminDashboard {
 
     showConfirm(title, message, onConfirm) {
         const confirmed = confirm(`${title}\n\n${message}`);
-        if (confirmed && onConfirm) {
-            onConfirm();
-        }
+        if (confirmed && onConfirm) onConfirm();
     }
 
     showToast(title, message, type = 'info') {
-        // Create toast notification
         const toast = document.createElement('div');
         toast.className = `admin-toast ${type}`;
         toast.innerHTML = `
@@ -509,7 +883,7 @@ class AdminDashboard {
             </div>
             <button onclick="this.parentElement.remove()">×</button>
         `;
-        
+
         toast.style.cssText = `
             position: fixed;
             bottom: 20px;
@@ -526,9 +900,9 @@ class AdminDashboard {
             animation: slideInRight 0.3s ease;
             min-width: 320px;
         `;
-        
+
         document.body.appendChild(toast);
-        
+
         setTimeout(() => {
             toast.style.animation = 'slideInRight 0.3s ease reverse forwards';
             setTimeout(() => toast.remove(), 300);
@@ -538,30 +912,42 @@ class AdminDashboard {
     debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
+            const later = () => { clearTimeout(timeout); func(...args); };
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
     }
 
     startAutoRefresh() {
-        // Refresh dashboard data every 5 minutes
         setInterval(() => {
             if (this.currentPage === 'dashboard') {
-                this.loadDashboardData();
+                this.fetchAllUsers(true).then(() => this.loadDashboardData());
             }
         }, 5 * 60 * 1000);
     }
 
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text ?? '';
+        return div.innerHTML;
+    }
+
     formatDate(dateString) {
         return new Date(dateString).toLocaleDateString('ar-EG', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+            year: 'numeric', month: 'short', day: 'numeric'
         });
+    }
+
+    timeAgo(ts) {
+        if (!ts) return '—';
+        const diff = Date.now() - ts;
+        const min = Math.floor(diff / 60000);
+        if (min < 1) return 'الآن';
+        if (min < 60) return `منذ ${min} دقيقة`;
+        const hr = Math.floor(min / 60);
+        if (hr < 24) return `منذ ${hr} ساعة`;
+        const day = Math.floor(hr / 24);
+        return `منذ ${day} يوم`;
     }
 
     formatNumber(num) {
@@ -569,8 +955,17 @@ class AdminDashboard {
     }
 }
 
-// Initialize admin dashboard
-const adminDashboard = new AdminDashboard();
+// ==================== BOOTSTRAP ====================
+
+let adminDashboard;
+
+document.addEventListener('DOMContentLoaded', () => {
+    adminDashboard = new AdminDashboard();
+    new AdminAuthGate((user) => {
+        console.log('🛡️ Admin authorized:', user.email);
+        adminDashboard.init();
+    });
+});
 
 // Global functions for inline handlers
 function closeModal(id) {
@@ -605,4 +1000,4 @@ function confirmDangerAction(action) {
     );
 }
 
-console.log('🛡️ Admin Dashboard initialized');
+console.log('🛡️ Admin Dashboard script loaded — waiting for authorized sign-in');

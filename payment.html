@@ -20,8 +20,30 @@
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="pages/pages.css">
     <link rel="stylesheet" href="css/payment-new.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0ea5e9">
+    <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="مستخبي">
 </head>
 <body class="payment-page-new" data-page="payment">
+    <div id="pwaInstallBanner" class="pwa-install-banner" hidden>
+        <div class="pwa-install-banner__icon">
+            <img src="/assets/icons/icon-96.png" alt="أيقونة مستخبي" width="48" height="48">
+        </div>
+        <div class="pwa-install-banner__text">
+            <strong>ثبّت تطبيق مستخبي</strong>
+            <span>وصول أسرع، إشعارات فورية، وتجربة بدون متصفح</span>
+        </div>
+        <div class="pwa-install-banner__actions">
+            <button type="button" id="pwaInstallBtn" class="btn btn-primary btn-sm">تثبيت</button>
+            <button type="button" id="pwaInstallDismiss" class="pwa-install-banner__close" aria-label="إغلاق">×</button>
+        </div>
+    </div>
+
     <!-- Preloader -->
     <div id="preloader" class="preloader">
         <div class="loader">
@@ -469,5 +491,6 @@
     <!-- Payment Page Script -->
     <script src="js/payment-new.js"></script>
     <script src="js/year.js"></script>
+    <script src="js/pwa-install.js"></script>
 </body>
 </html>

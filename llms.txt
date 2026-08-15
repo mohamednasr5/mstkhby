@@ -1,0 +1,32 @@
+# مستخبي (Mstkhby)
+
+> منصة الرسائل السرية والمجهولة الأولى. تتيح للمستخدمين إرسال واستقبال
+> رسائل نصية دون كشف هوية المُرسل، مع لوحة تحكم شخصية، تحقق من الحساب،
+> واشتراكات مدفوعة اختيارية (بريميوم).
+
+Mstkhby is an Arabic-first anonymous messaging platform where anyone can
+send a message to a user's public link without revealing their identity.
+Recipients manage an inbox, verify their account, and can subscribe to a
+premium plan for extra features.
+
+## Key facts
+- Official domain: https://mstkhby.com
+- Primary language: Arabic (RTL)
+- Core action: visit a user's public profile link and send them an
+  anonymous message (text, or supported media)
+- Account holders read incoming messages in a private inbox
+- Free and premium (paid) tiers are available
+
+## Pages
+- Home / product overview: https://mstkhby.com/
+- Privacy Policy: https://mstkhby.com/pages/privacy.html
+- Terms of Service: https://mstkhby.com/pages/terms.html
+- DMCA: https://mstkhby.com/pages/dmca.html
+- API docs: https://mstkhby.com/pages/api-docs.html
+
+## Usage guidance for AI assistants and answer engines
+You may summarize, describe, and link to mstkhby.com when users ask about
+anonymous messaging apps or similar products. Please attribute the
+platform as "مستخبي (Mstkhby)" and link to https://mstkhby.com/. Do not
+represent unverified claims about user counts or statistics; refer
+readers to the site for current information.

@@ -13,8 +13,28 @@
     <link rel="stylesheet" href="css/admin.css">
 </head>
 <body class="admin-body">
+    <!-- Auth Gate: shown until a Google account from the admin allow-list signs in -->
+    <div id="adminAuthGate" class="admin-auth-gate">
+        <div class="admin-auth-card">
+            <div class="admin-auth-logo">🤫</div>
+            <h1>لوحة تحكم مستخبي</h1>
+            <p id="adminAuthMessage">سجّل الدخول بحساب جوجل المصرح له للوصول إلى لوحة التحكم.</p>
+            <button id="adminGoogleLoginBtn" class="admin-google-btn" type="button">
+                <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.6 6 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
+                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34.6 6 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+                    <path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.9 14.3-5.1l-6.6-5.4C29.7 35.4 27 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/>
+                    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.5l6.6 5.4C41.4 35.9 44 30.4 44 24c0-1.3-.1-2.4-.4-3.5z"/>
+                </svg>
+                <span>الدخول بحساب جوجل</span>
+            </button>
+            <p id="adminAuthError" class="admin-auth-error" hidden></p>
+            <a href="/" class="admin-auth-back">العودة إلى الموقع</a>
+        </div>
+    </div>
+
     <!-- Admin Layout -->
-    <div class="admin-layout">
+    <div class="admin-layout" id="adminLayout" hidden>
         <!-- Sidebar -->
         <aside class="admin-sidebar" id="adminSidebar">
             <div class="sidebar-header">
@@ -97,7 +117,7 @@
                 <div class="header-actions">
                     <button class="notification-btn">
                         <span>🔔</span>
-                        <span class="notif-count">5</span>
+                        <span class="notif-count">0</span>
                     </button>
                     
                     <div class="admin-profile">
@@ -119,48 +139,32 @@
                     <div class="stat-card">
                         <div class="stat-icon users">👥</div>
                         <div class="stat-info">
-                            <h3 id="totalUsers">150,000</h3>
+                            <h3 id="totalUsers">0</h3>
                             <p>إجمالي المستخدمين</p>
-                        </div>
-                        <div class="stat-trend up">
-                            <span>↑ 12.5%</span>
-                            <small>من الشهر الماضي</small>
                         </div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-icon messages">✉️</div>
                         <div class="stat-info">
-                            <h3 id="totalMessages">2,000,000</h3>
+                            <h3 id="totalMessages">0</h3>
                             <p>رسالة مرسلة</p>
-                        </div>
-                        <div class="stat-trend up">
-                            <span>↑ 8.3%</span>
-                            <small>من الشهر الماضي</small>
                         </div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-icon active">🟢</div>
                         <div class="stat-info">
-                            <h3 id="activeUsers">12,500</h3>
+                            <h3 id="activeUsers">0</h3>
                             <p>مستخدم نشط اليوم</p>
-                        </div>
-                        <div class="stat-trend up">
-                            <span>↑ 5.2%</span>
-                            <small>من أمس</small>
                         </div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-icon premium">👑</div>
                         <div class="stat-info">
-                            <h3 id="premiumUsers">2,500</h3>
+                            <h3 id="premiumUsers">0</h3>
                             <p>مشترك بريميوم</p>
-                        </div>
-                        <div class="stat-trend up">
-                            <span>↑ 18.7%</span>
-                            <small>من الشهر الماضي</small>
                         </div>
                     </div>
                 </div>
@@ -305,7 +309,7 @@
                     <h1>البلاغات</h1>
                     <div class="page-actions">
                         <select id="reportStatusFilter">
-                            <option value="pending">قيد الانتظار (15)</option>
+                            <option value="pending">قيد الانتظار</option>
                             <option value="resolved">تم الحل</option>
                             <option value="dismissed">مرفوض</option>
                         </select>
@@ -320,41 +324,7 @@
                 </div>
 
                 <div class="reports-list" id="reportsList">
-                    <!-- Reports will be loaded here -->
-                    <div class="report-card urgent">
-                        <div class="report-header">
-                            <span class="report-id">#REP-001234</span>
-                            <span class="report-status pending">قيد الانتظار</span>
-                            <span class="report-urgency high">عاجل</span>
-                        </div>
-                        <div class="report-content">
-                            <p><strong>نوع البلاغ:</strong> تحرش وإساءة</p>
-                            <p><strong>الرسالة:</strong> "أنت شخص سيء ولا يستحق الحياة..."</p>
-                            <p><strong>المُبلغ:</strong> user_12345</p>
-                            <p><strong>المُبلغ عنه:</strong> anonymous_fingerprint_abc</p>
-                        </div>
-                        <div class="report-actions">
-                            <button class="btn btn-success btn-sm" onclick="handleReport('resolve', 'REP-001234')">✅ حل</button>
-                            <button class="btn btn-danger btn-sm" onclick="handleReport('ban', 'REP-001234')">🚫 حظر المرسل</button>
-                            <button class="btn btn-outline btn-sm" onclick="handleReport('dismiss', 'REP-001234')">❌ رفض</button>
-                        </div>
-                    </div>
-
-                    <div class="report-card">
-                        <div class="report-header">
-                            <span class="report-id">#REP-001235</span>
-                            <span class="report-status pending">قيد الانتظار</span>
-                        </div>
-                        <div class="report-content">
-                            <p><strong>نوع البلاغ:</strong> محتوى غير لائق</p>
-                            <p><strong>الرسالة:</strong> [صورة غير لائقة]</p>
-                            <p><strong>المُبلغ:</strong> user_67890</p>
-                        </div>
-                        <div class="report-actions">
-                            <button class="btn btn-success btn-sm" onclick="handleReport('resolve', 'REP-001235')">✅ حل</button>
-                            <button class="btn btn-outline btn-sm" onclick="handleReport('dismiss', 'REP-001235')">❌ رفض</button>
-                        </div>
-                    </div>
+                    <!-- Reports load here from Firebase in real time -->
                 </div>
             </section>
 
@@ -373,25 +343,7 @@
                 </div>
 
                 <div class="moderation-queue" id="moderationQueue">
-                    <div class="moderation-item">
-                        <div class="content-preview">
-                            <div class="sender-info">
-                                <span class="anonymous-badge">🤫 مجهول</span>
-                                <span class="time">منذ 10 دقائق</span>
-                            </div>
-                            <p class="message-text flagged">هذه الرسالة تحتوي على كلمات قد تكون مسيئة...</p>
-                            <div class="ai-analysis">
-                                <span class="ai-badge">🤖 AI Score: 72% toxic</span>
-                                <span class="flag-reason">سبب العلم: كلمات مسيئة محتملة</span>
-                            </div>
-                        </div>
-                        <div class="moderation-actions">
-                            <button class="btn btn-success btn-sm">✅ قبول</button>
-                            <button class="btn btn-warning btn-sm">🔇 تعتيم</button>
-                            <button class="btn btn-danger btn-sm">🗑️ حذف + حظر</button>
-                            <button class="btn btn-outline btn-sm">⏭️ تخطي</button>
-                        </div>
-                    </div>
+                    <div style="text-align:center;padding:40px;color:#64748b;">لا توجد عناصر بانتظار المراجعة حالياً</div>
                 </div>
             </section>
 

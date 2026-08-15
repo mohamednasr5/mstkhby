@@ -1305,3 +1305,94 @@
         width: 100%;
     }
 }
+
+/* ===================================
+   Admin Auth Gate
+   =================================== */
+.admin-auth-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 20%, #1e293b 0%, #0f172a 60%, #020617 100%);
+    padding: 20px;
+}
+
+.admin-auth-gate[hidden] { display: none; }
+
+.admin-auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 20px;
+    padding: 40px 28px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.admin-auth-logo {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.admin-auth-card h1 {
+    color: #fff;
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.admin-auth-card p {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.admin-google-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #fff;
+    color: #1e293b;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-google-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.admin-google-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.admin-auth-error {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 10px;
+    color: #fca5a5;
+    font-size: 13px;
+}
+
+.admin-auth-back {
+    display: inline-block;
+    margin-top: 20px;
+    color: #64748b;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.admin-auth-back:hover { color: #94a3b8; }

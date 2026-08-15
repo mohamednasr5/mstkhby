@@ -1,14 +1,29 @@
 /**
  * Mstkhby - Service Worker
- * Basic offline support: caches static assets on install,
- * serves them from cache first, falls back to network.
+ * Caches the app shell so the installed PWA works offline and passes
+ * installability checks (required for a real "Install app" prompt, not
+ * a browser shortcut).
  */
 
-const CACHE_NAME = 'mstkhby-static-v1';
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `mstkhby-static-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
     '/',
-    '/index.html'
+    '/index.html',
+    '/inbox.html',
+    '/profile.html',
+    '/manifest.json',
+    '/css/main.css',
+    '/css/components.css',
+    '/css/animations.css',
+    '/css/responsive.css',
+    '/css/premium.css',
+    '/js/app.js',
+    '/js/pwa-install.js',
+    '/assets/icons/favicon.svg',
+    '/assets/icons/icon-192.png',
+    '/assets/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,13 +54,16 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return;
 
+    // Never cache the admin dashboard — it must always reflect live data
+    // and must never be servable while signed out / offline.
+    if (url.pathname.startsWith('/admin/')) return;
+
     event.respondWith(
         caches.match(event.request).then((cached) => {
             if (cached) return cached;
 
             return fetch(event.request)
                 .then((response) => {
-                    // Cache successful static asset responses for next time
                     if (response.ok) {
                         const responseClone = response.clone();
                         caches.open(CACHE_NAME).then((cache) => {
@@ -54,7 +72,11 @@ self.addEventListener('fetch', (event) => {
                     }
                     return response;
                 })
-                .catch(() => caches.match('/index.html'));
+                .catch(() => {
+                    if (event.request.mode === 'navigate') {
+                        return caches.match('/index.html');
+                    }
+                });
         })
     );
 });

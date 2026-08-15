@@ -1,0 +1,97 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      "$uid": {
+        "profile": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
+        },
+        "subscriptions": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "payments": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+
+    "usernames": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+
+    "messages": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      "$messageId": {
+        ".read": "auth != null && (data.child('recipientId').val() === auth.uid || data.child('senderId').val() === auth.uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+        ".write": true
+      }
+    },
+
+    "messagesByRecipient": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+        ".write": true
+      }
+    },
+
+    "messagesBySender": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+        ".write": true
+      }
+    },
+
+    "conversations": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "reports": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".write": "auth == null || (auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com'))",
+      "$reportId": {
+        ".write": true
+      }
+    },
+
+    "blocks": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "verifications": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+        ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
+      }
+    },
+
+    "analyticsEvents": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".write": true
+    },
+
+    "subscriptions": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".write": "auth != null"
+    },
+
+    "payments": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".write": "auth != null"
+    },
+
+    "settings": {
+      ".read": true,
+      ".write": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
+    }
+  }
+}
