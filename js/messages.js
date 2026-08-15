@@ -257,18 +257,20 @@ class MessagesService {
             
             if (snap.exists()) {
                 const data = snap.val();
+                const deleterId = this.auth?.currentUser?.uid || null;
 
-                // Delete media from R2 if present
-                if (data.mediaUrl) {
-                    try {
-                        const key = this.media.keyFromUrl(data.mediaUrl);
-                        if (key) await this.media.remove(key);
-                    } catch (e) {
-                        console.warn('Failed to delete media:', e);
-                    }
-                }
+                // Archive a full copy for moderation/audit purposes BEFORE removing it
+                // from the live inbox. Media is intentionally kept in R2 (not erased)
+                // so admins can still review it — the delete only removes it from the
+                // user's own view.
+                const archived = {
+                    ...data,
+                    id: messageId,
+                    deletedAt: firebase.database.ServerValue.TIMESTAMP,
+                    deletedBy: deleterId
+                };
 
-                // Remove the message and its index entries in one multi-path update
+                // Remove the message from the live index and archive it, in one multi-path update
                 const updates = {};
                 updates[`messages/${messageId}`] = null;
                 if (data.recipientId) {
@@ -277,11 +279,12 @@ class MessagesService {
                 if (data.senderId) {
                     updates[`messagesBySender/${data.senderId}/${messageId}`] = null;
                 }
+                updates[`deletedMessages/${messageId}`] = archived;
 
                 await this.database.ref().update(updates);
             }
 
-            console.log('✅ Message deleted');
+            console.log('✅ Message deleted (archived for admin review)');
             return { success: true };
 
         } catch (error) {

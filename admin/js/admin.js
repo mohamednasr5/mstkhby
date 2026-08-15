@@ -191,6 +191,10 @@ class AdminDashboard {
         document.getElementById('reportStatusFilter')?.addEventListener('change', () => this.loadReports());
         document.getElementById('reportTypeFilter')?.addEventListener('change', () => this.loadReports());
 
+        document.getElementById('saveGeneralSettingsBtn')?.addEventListener('click', () => this.saveGeneralSettings());
+        document.getElementById('saveNotifSettingsBtn')?.addEventListener('click', () => this.saveNotifSettings());
+        document.getElementById('saveSecuritySettingsBtn')?.addEventListener('click', () => this.saveSecuritySettings());
+
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
@@ -250,6 +254,81 @@ class AdminDashboard {
             case 'analytics':
                 this.loadAnalytics();
                 break;
+            case 'settings':
+                this.loadPlatformSettings();
+                break;
+        }
+    }
+
+    // ==================== PLATFORM SETTINGS ====================
+
+    async loadPlatformSettings() {
+        try {
+            const snap = await this.database.ref('platformSettings').once('value');
+            const s = snap.val() || {};
+
+            const setSel = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+            const setToggle = (id, on) => { const el = document.getElementById(id); if (el && on !== undefined) el.classList.toggle('active', !!on); };
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+
+            setSel('setRegistrationStatus', s.registrationStatus);
+            setVal('setMaxFileSize', s.maxFileSizeMb);
+            setToggle('setAiModeration', s.aiModerationStrict ?? true);
+
+            setToggle('setNotifAdminEmail', s.notifications?.adminEmail ?? true);
+            setToggle('setNotifUrgentReports', s.notifications?.urgentReports ?? true);
+            setToggle('setNotifDailyReport', s.notifications?.dailyReport ?? false);
+
+            setToggle('setTwoFactor', s.security?.twoFactor ?? true);
+            const ipsEl = document.getElementById('setAllowedIps');
+            if (ipsEl) ipsEl.value = (s.security?.allowedIps || []).join('\n');
+            setVal('setRateLimit', s.security?.rateLimitPerMinute ?? 60);
+        } catch (error) {
+            console.error('loadPlatformSettings error:', error);
+        }
+    }
+
+    async saveGeneralSettings() {
+        try {
+            await this.database.ref('platformSettings').update({
+                registrationStatus: document.getElementById('setRegistrationStatus')?.value,
+                maxFileSizeMb: Number(document.getElementById('setMaxFileSize')?.value) || 50,
+                aiModerationStrict: document.getElementById('setAiModeration')?.classList.contains('active') ?? true
+            });
+            this.showToast('تم الحفظ', 'تم حفظ الإعدادات العامة', 'success');
+        } catch (error) {
+            console.error('saveGeneralSettings error:', error);
+            this.showToast('خطأ', 'تعذر حفظ الإعدادات', 'error');
+        }
+    }
+
+    async saveNotifSettings() {
+        try {
+            await this.database.ref('platformSettings/notifications').set({
+                adminEmail: document.getElementById('setNotifAdminEmail')?.classList.contains('active') ?? true,
+                urgentReports: document.getElementById('setNotifUrgentReports')?.classList.contains('active') ?? true,
+                dailyReport: document.getElementById('setNotifDailyReport')?.classList.contains('active') ?? false
+            });
+            this.showToast('تم الحفظ', 'تم حفظ إعدادات الإشعارات', 'success');
+        } catch (error) {
+            console.error('saveNotifSettings error:', error);
+            this.showToast('خطأ', 'تعذر حفظ إعدادات الإشعارات', 'error');
+        }
+    }
+
+    async saveSecuritySettings() {
+        try {
+            const ips = (document.getElementById('setAllowedIps')?.value || '')
+                .split('\n').map(s => s.trim()).filter(Boolean);
+            await this.database.ref('platformSettings/security').set({
+                twoFactor: document.getElementById('setTwoFactor')?.classList.contains('active') ?? true,
+                allowedIps: ips,
+                rateLimitPerMinute: Number(document.getElementById('setRateLimit')?.value) || 60
+            });
+            this.showToast('تم الحفظ', 'تم حفظ إعدادات الأمان (سياسة مرجعية — تفعيلها الفعلي يتطلب طبقة سيرفر)', 'success');
+        } catch (error) {
+            console.error('saveSecuritySettings error:', error);
+            this.showToast('خطأ', 'تعذر حفظ إعدادات الأمان', 'error');
         }
     }
 
@@ -600,18 +679,230 @@ class AdminDashboard {
         const user = usersById[userId];
         if (!user) return;
 
-        const modal = document.getElementById('userDetailModal');
-        if (modal) {
-            modal.querySelectorAll('.detail-row span:last-child').forEach((el, i) => {
-                const values = [
-                    user.email || '—',
-                    user.createdAt ? this.formatDate(new Date(user.createdAt).toISOString()) : '—',
-                    user.lastActiveAt ? this.timeAgo(user.lastActiveAt) : '—'
-                ];
-                if (values[i] !== undefined) el.textContent = values[i];
-            });
+        this.currentViewedUserId = userId;
+
+        const els = {
+            avatar: document.getElementById('udUserAvatar'),
+            name: document.getElementById('udDisplayName'),
+            username: document.getElementById('udUsername'),
+            link: document.getElementById('udProfileLink'),
+            planBadge: document.getElementById('udPlanBadge'),
+            email: document.getElementById('udEmail'),
+            createdAt: document.getElementById('udCreatedAt'),
+            lastActive: document.getElementById('udLastActive'),
+            status: document.getElementById('udStatus'),
+            planSelect: document.getElementById('udPlanSelect'),
+            msgsReceived: document.getElementById('udMsgsReceived'),
+            msgsSent: document.getElementById('udMsgsSent'),
+            msgsDeleted: document.getElementById('udMsgsDeleted'),
+            loginHistory: document.getElementById('udLoginHistory')
+        };
+
+        const displayName = user.displayName || user.username || 'مستخدم';
+        const username = user.username || '—';
+        const profileUrl = user.profileUrl || `mstkhby.com/${user.username || ''}`;
+
+        if (els.avatar) els.avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=100&background=8b5cf6&color=fff`;
+        if (els.name) els.name.textContent = displayName;
+        if (els.username) els.username.textContent = username;
+        if (els.link) { els.link.textContent = profileUrl; els.link.href = profileUrl.startsWith('http') ? profileUrl : `https://${profileUrl}`; }
+        if (els.planBadge) {
+            const isPremium = user.plan && user.plan !== 'free';
+            els.planBadge.textContent = isPremium ? `بريميوم${user.plan !== 'premium' ? ' (' + user.plan + ')' : ''}` : 'مجاني';
+            els.planBadge.className = `badge ${isPremium ? 'premium' : ''}`;
         }
+        if (els.email) els.email.textContent = user.email || '—';
+        if (els.createdAt) els.createdAt.textContent = user.createdAt ? this.formatDate(new Date(user.createdAt).toISOString()) : '—';
+        if (els.lastActive) els.lastActive.textContent = user.lastActiveAt ? this.timeAgo(user.lastActiveAt) : '—';
+        if (els.status) {
+            const banned = user.status === 'banned';
+            els.status.textContent = banned ? 'محظور 🚫' : 'نشط ✅';
+            els.status.className = banned ? 'status-banned' : 'status-active';
+        }
+        if (els.planSelect) els.planSelect.value = user.plan || 'free';
+        if (els.loginHistory) { els.loginHistory.style.display = 'none'; els.loginHistory.innerHTML = ''; }
+
+        // Message counts (sent / received / deleted-archived), fetched from the indexes
+        Promise.all([
+            this.database.ref(`messagesByRecipient/${userId}`).once('value'),
+            this.database.ref(`messagesBySender/${userId}`).once('value'),
+            this.database.ref('deletedMessages').orderByChild('senderId').equalTo(userId).once('value'),
+            this.database.ref('deletedMessages').orderByChild('recipientId').equalTo(userId).once('value')
+        ]).then(([recvSnap, sentSnap, delBySenderSnap, delByRecipientSnap]) => {
+            if (els.msgsReceived) els.msgsReceived.textContent = this.formatNumber(recvSnap.numChildren());
+            if (els.msgsSent) els.msgsSent.textContent = this.formatNumber(sentSnap.numChildren());
+            const deletedIds = new Set();
+            delBySenderSnap.forEach(c => deletedIds.add(c.key));
+            delByRecipientSnap.forEach(c => deletedIds.add(c.key));
+            if (els.msgsDeleted) els.msgsDeleted.textContent = this.formatNumber(deletedIds.size);
+        }).catch(err => console.warn('message counts failed:', err));
+
+        // Wire the action buttons for this specific user (re-bound every open)
+        const warnBtn = document.getElementById('udWarnBtn');
+        if (warnBtn) warnBtn.onclick = () => this.warnUser(userId);
+
+        const banBtn = document.getElementById('udBanBtn');
+        if (banBtn) { banBtn.textContent = user.status === 'banned' ? '♻️ إلغاء الحظر' : '🚫 حظر'; banBtn.onclick = () => { this.banUser(userId); this.closeModal('userDetailModal'); }; }
+
+        const emailBtn = document.getElementById('udEmailBtn');
+        if (emailBtn) emailBtn.onclick = () => this.emailUser(userId);
+
+        const loginBtn = document.getElementById('udLoginHistoryBtn');
+        if (loginBtn) loginBtn.onclick = () => this.toggleLoginHistory(userId);
+
+        const msgsBtn = document.getElementById('udMessagesBtn');
+        if (msgsBtn) msgsBtn.onclick = () => { this.closeModal('userDetailModal'); this.viewUserMessages(userId); };
+
+        const saveBtn = document.getElementById('udSavePlanBtn');
+        if (saveBtn) saveBtn.onclick = () => this.changeUserPlan(userId, els.planSelect?.value || 'free');
+
         this.openModal('userDetailModal');
+    }
+
+    /** Change a user's plan/subscription from the admin panel. */
+    async changeUserPlan(userId, newPlan) {
+        try {
+            const now = Date.now();
+            const updates = {
+                [`users/${userId}/profile/plan`]: newPlan,
+                [`users/${userId}/profile/subscriptionStatus`]: newPlan === 'free' ? 'inactive' : 'active'
+            };
+            if (newPlan !== 'free') {
+                updates[`users/${userId}/subscriptions/current`] = {
+                    plan: newPlan,
+                    status: 'active',
+                    source: 'admin',
+                    startDate: now,
+                    // 30-day admin grant by default; adjust as needed for your billing flow.
+                    endDate: now + 30 * 24 * 60 * 60 * 1000
+                };
+            } else {
+                updates[`users/${userId}/subscriptions/current`] = null;
+            }
+            await this.database.ref().update(updates);
+            await this.fetchAllUsers(true);
+            this.showToast('تم التحديث', 'تم تغيير باقة المستخدم بنجاح', 'success');
+            this.loadUsers();
+        } catch (error) {
+            console.error('changeUserPlan error:', error);
+            this.showToast('خطأ', 'تعذر تغيير باقة المستخدم', 'error');
+        }
+    }
+
+    /** Send a warning notice, logged under the user's record. */
+    async warnUser(userId) {
+        const reason = prompt('سبب التحذير (سيظهر للمستخدم):');
+        if (reason === null) return; // cancelled
+        try {
+            await this.database.ref(`users/${userId}/warnings`).push({
+                reason: reason || 'مخالفة قواعد المنصة',
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                by: (window.MstkhbyFirebase?.auth || firebase.auth()).currentUser?.email || 'admin'
+            });
+            this.showToast('تم الإرسال', 'تم تسجيل التحذير للمستخدم', 'success');
+        } catch (error) {
+            console.error('warnUser error:', error);
+            this.showToast('خطأ', 'تعذر إرسال التحذير', 'error');
+        }
+    }
+
+    /** Opens the admin's mail client pre-addressed to the user. */
+    async emailUser(userId) {
+        const usersById = await this.fetchAllUsers();
+        const user = usersById[userId];
+        if (!user?.email) { this.showToast('تعذر', 'لا يوجد بريد إلكتروني مسجل لهذا المستخدم', 'error'); return; }
+        window.location.href = `mailto:${user.email}`;
+    }
+
+    /** Toggle inline display of the user's recent login history. */
+    async toggleLoginHistory(userId) {
+        const box = document.getElementById('udLoginHistory');
+        if (!box) return;
+        if (box.style.display !== 'none' && box.innerHTML) { box.style.display = 'none'; return; }
+        box.innerHTML = '<div class="detail-row"><span>جاري التحميل...</span></div>';
+        box.style.display = 'block';
+        try {
+            const snap = await this.database.ref(`users/${userId}/loginHistory`).once('value');
+            if (!snap.exists()) {
+                box.innerHTML = '<div class="detail-row"><span>لا توجد سجلات تسجيل دخول متاحة لهذا المستخدم (بدأ التتبع حديثًا، فالحسابات القديمة قد لا تملك سجلات سابقة).</span></div>';
+                return;
+            }
+            const entries = Object.values(snap.val()).sort((a, b) => (b.at || 0) - (a.at || 0));
+            box.innerHTML = entries.map(e => `
+                <div class="detail-row">
+                    <span>${e.method === 'google' ? '🔵 جوجل' : e.method === 'apple' ? '⚫ آبل' : '✉️ بريد وكلمة مرور'}</span>
+                    <span>${e.at ? this.timeAgo(e.at) : '—'}</span>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('toggleLoginHistory error:', error);
+            box.innerHTML = '<div class="detail-row"><span>تعذر تحميل سجل الدخول</span></div>';
+        }
+    }
+
+    /** Shows every message (sent + received), including deleted/archived ones, for one user. */
+    async viewUserMessages(userId) {
+        this.navigateTo('messages');
+        const messagesList = document.getElementById('adminMessagesList');
+        if (!messagesList) return;
+        messagesList.innerHTML = this.emptyState('جاري تحميل رسائل المستخدم...');
+
+        try {
+            const [recvIdx, sentIdx, delBySender, delByRecipient] = await Promise.all([
+                this.database.ref(`messagesByRecipient/${userId}`).once('value'),
+                this.database.ref(`messagesBySender/${userId}`).once('value'),
+                this.database.ref('deletedMessages').orderByChild('senderId').equalTo(userId).once('value'),
+                this.database.ref('deletedMessages').orderByChild('recipientId').equalTo(userId).once('value')
+            ]);
+
+            const liveIds = new Set();
+            recvIdx.forEach(c => liveIds.add(c.key));
+            sentIdx.forEach(c => liveIds.add(c.key));
+
+            const liveMessages = (await Promise.all(
+                Array.from(liveIds).map(id => this.database.ref(`messages/${id}`).once('value'))
+            )).filter(s => s.exists()).map(s => ({ id: s.key, ...s.val(), _deleted: false }));
+
+            const deletedMap = new Map();
+            delBySender.forEach(c => deletedMap.set(c.key, { id: c.key, ...c.val(), _deleted: true }));
+            delByRecipient.forEach(c => deletedMap.set(c.key, { id: c.key, ...c.val(), _deleted: true }));
+
+            const all = [...liveMessages, ...deletedMap.values()].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            const header = `
+                <div class="page-header" style="margin-bottom:16px;">
+                    <span>عرض رسائل المستخدم: <strong>${userId}</strong> (${all.length} رسالة، منها ${deletedMap.size} محذوفة ومؤرشفة)</span>
+                    <button class="btn btn-outline btn-sm" onclick="adminDashboard.loadMessages()">✖ مسح الفلتر — عرض كل الرسائل</button>
+                </div>`;
+
+            if (all.length === 0) {
+                messagesList.innerHTML = header + this.emptyState('لا توجد رسائل لهذا المستخدم');
+                return;
+            }
+
+            messagesList.innerHTML = header + `
+                <div style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); display: grid; gap: 16px;">
+                    ${all.map(m => `
+                        <div class="message-card-admin" style="${m._deleted ? 'opacity:0.7;border:1px dashed #ef4444;' : ''}">
+                            <div class="msg-header">
+                                <span class="identity-badge ${m.identity || 'anonymous'}">${m.identity === 'alias' ? '🎭 مستعار' : m.identity === 'known' ? '👤 معروف' : '🤫 مجهول'}</span>
+                                <span class="msg-time">${this.timeAgo(m.createdAt)}</span>
+                            </div>
+                            ${m._deleted ? '<div style="color:#ef4444;font-size:12px;margin-bottom:4px;">🗑️ محذوفة — أرشيف للمراجعة فقط</div>' : ''}
+                            <p class="msg-content">${this.escapeHtml((m.content || '').slice(0, 160))}${(m.content || '').length > 160 ? '…' : ''}</p>
+                            ${m.mediaUrl ? `<a href="${m.mediaUrl}" target="_blank" rel="noopener" style="font-size:12px;color:#0ea5e9;">📎 عرض الوسائط</a>` : ''}
+                            <div class="msg-meta">
+                                <span>${m.senderId === userId ? '⬅️ مرسلة' : '➡️ مستلمة'}</span>
+                                <span>${m.messageType === 'text' ? '📝 نص' : m.messageType === 'image' ? '🖼️ صورة' : m.messageType === 'video' ? '🎬 فيديو' : '📎 وسائط'}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } catch (error) {
+            console.error('viewUserMessages error:', error);
+            messagesList.innerHTML = this.emptyState('❌ تعذر تحميل رسائل المستخدم');
+        }
     }
 
     async banUser(userId) {

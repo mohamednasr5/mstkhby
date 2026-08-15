@@ -17,6 +17,14 @@
         "payments": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
           ".write": "auth != null && auth.uid === $uid"
+        },
+        "warnings": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+          ".write": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
+        },
+        "loginHistory": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+          ".write": "auth != null && auth.uid === $uid"
         }
       }
     },
@@ -46,6 +54,16 @@
         ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
         ".write": true
       }
+    },
+
+    "deletedMessages": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".write": "auth != null"
+    },
+
+    "platformSettings": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".write": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
     },
 
     "conversations": {

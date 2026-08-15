@@ -113,11 +113,35 @@ class AuthService {
             }
 
             console.log('✅ Login successful');
+            await this.recordLogin(user, 'password');
             return { success: true, user };
             
         } catch (error) {
             console.error('❌ Login error:', error);
             throw this.handleAuthError(error);
+        }
+    }
+
+    // Appends a login event to users/{uid}/loginHistory, keeping only the
+    // most recent 20 entries. Used by the admin dashboard's "تسجيلات الدخول" view.
+    async recordLogin(user, method) {
+        try {
+            const ref = this.database.ref(`users/${user.uid}/loginHistory`);
+            const snap = await ref.once('value');
+            const entries = snap.exists() ? Object.entries(snap.val()) : [];
+            entries.sort((a, b) => (a[1]?.at || 0) - (b[1]?.at || 0));
+            while (entries.length >= 20) {
+                const [oldestKey] = entries.shift();
+                await ref.child(oldestKey).remove();
+            }
+            await ref.push({
+                method,
+                at: firebase.database.ServerValue.TIMESTAMP,
+                userAgent: (typeof navigator !== 'undefined' && navigator.userAgent) || 'unknown'
+            });
+        } catch (e) {
+            // Never let login tracking break the actual sign-in flow.
+            console.warn('recordLogin failed:', e);
         }
     }
 
@@ -174,6 +198,7 @@ class AuthService {
             }
 
             console.log('✅ Google sign-in successful');
+            await this.recordLogin(user, 'google');
             return { success: true, user };
             
         } catch (error) {
@@ -211,6 +236,7 @@ class AuthService {
             }
 
             console.log('✅ Apple sign-in successful');
+            await this.recordLogin(user, 'apple');
             return { success: true, user };
             
         } catch (error) {

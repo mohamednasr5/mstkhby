@@ -423,7 +423,7 @@
                         
                         <div class="setting-item">
                             <label>حالة التسجيل الجديد</label>
-                            <select>
+                            <select id="setRegistrationStatus">
                                 <option value="open" selected>مفتوح</option>
                                 <option value="invite">بدعوة فقط</option>
                                 <option value="closed">مغلق</option>
@@ -432,15 +432,15 @@
 
                         <div class="setting-item">
                             <label>حد حجم الملف (MB)</label>
-                            <input type="number" value="50" min="1" max="200">
+                            <input type="number" id="setMaxFileSize" value="50" min="1" max="200">
                         </div>
 
                         <div class="setting-item">
                             <label>صارمة AI Moderation</label>
-                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            <div class="toggle-switch active" id="setAiModeration" onclick="this.classList.toggle('active')"></div>
                         </div>
 
-                        <button class="btn btn-primary">حفظ الإعدادات</button>
+                        <button class="btn btn-primary" id="saveGeneralSettingsBtn">حفظ الإعدادات</button>
                     </div>
 
                     <div class="settings-card">
@@ -448,37 +448,47 @@
                         
                         <div class="setting-item">
                             <label>إشعارات البريد الإلكتروني للمدراء</label>
-                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            <div class="toggle-switch active" id="setNotifAdminEmail" onclick="this.classList.toggle('active')"></div>
                         </div>
 
                         <div class="setting-item">
                             <label>تنبيه عند بلاغات عاجلة</label>
-                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            <div class="toggle-switch active" id="setNotifUrgentReports" onclick="this.classList.toggle('active')"></div>
                         </div>
 
                         <div class="setting-item">
                             <label>تقرير يومي بالأداء</label>
-                            <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                            <div class="toggle-switch" id="setNotifDailyReport" onclick="this.classList.toggle('active')"></div>
                         </div>
+
+                        <button class="btn btn-primary" id="saveNotifSettingsBtn">حفظ إعدادات الإشعارات</button>
                     </div>
 
                     <div class="settings-card">
                         <h3>🛡️ إعدادات الأمان</h3>
-                        
+                        <p style="font-size:12px;color:#94a3b8;margin-bottom:8px;">
+                            ملاحظة: هذا تطبيق ثابت (client-side) متصل بـ Firebase مباشرة، بلا سيرفر خاص بكم.
+                            لذلك عناصر مثل Rate Limiting الفعلي وتقييد الدخول حسب IP يجب تطبيقها عبر
+                            Firebase App Check / Cloud Functions أو طبقة سيرفر منفصلة — لا يمكن فرضها بأمان من المتصفح فقط.
+                            القيم هنا تُحفظ كسياسة مرجعية فقط حتى تُفعّل مستقبلاً على مستوى السيرفر.
+                        </p>
+
                         <div class="setting-item">
-                            <label>المصادقة الثنائية (2FA)</label>
-                            <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            <label>المصادقة الثنائية (2FA) لحسابات الأدمن</label>
+                            <div class="toggle-switch active" id="setTwoFactor" onclick="this.classList.toggle('active')"></div>
                         </div>
 
                         <div class="setting-item">
-                            <label>تسجيل الدخول IP محدد</label>
-                            <textarea placeholder="IP addresses, one per line..."></textarea>
+                            <label>تسجيل الدخول IP محدد (سياسة مرجعية)</label>
+                            <textarea id="setAllowedIps" placeholder="IP addresses, one per line..."></textarea>
                         </div>
 
                         <div class="setting-item">
-                            <label>Rate Limiting (طلبات/دقيقة)</label>
-                            <input type="number" value="60" min="10" max="1000">
+                            <label>Rate Limiting (طلبات/دقيقة) (سياسة مرجعية)</label>
+                            <input type="number" id="setRateLimit" value="60" min="10" max="1000">
                         </div>
+
+                        <button class="btn btn-outline" id="saveSecuritySettingsBtn">حفظ إعدادات الأمان</button>
                     </div>
 
                     <div class="settings-card danger-zone">
@@ -543,53 +553,68 @@
             <button class="modal-close" onclick="closeModal('userDetailModal')">&times;</button>
             
             <div class="user-profile-header">
-                <img src="https://ui-avatars.com/api/?name=User&size=100&background=8b5cf6&color=fff" alt="User">
+                <img id="udUserAvatar" src="https://ui-avatars.com/api/?name=User&size=100&background=8b5cf6&color=fff" alt="User">
                 <div class="user-info">
-                    <h2>اسم المستخدم</h2>
-                    <p>@username</p>
-                    <span class="badge premium">بريميوم</span>
+                    <h2 id="udDisplayName">اسم المستخدم</h2>
+                    <p>@<span id="udUsername">username</span></p>
+                    <a id="udProfileLink" href="#" target="_blank" rel="noopener" style="font-size:13px;color:#0ea5e9;display:block;margin-top:2px;">mstkhby.com/username</a>
+                    <span class="badge premium" id="udPlanBadge">بريميوم</span>
                 </div>
             </div>
 
             <div class="user-stats-grid">
                 <div class="user-stat">
-                    <strong>1,234</strong>
+                    <strong id="udMsgsReceived">—</strong>
                     <span>رسالة مستلمة</span>
                 </div>
                 <div class="user-stat">
-                    <strong>567</strong>
-                    <span>تفاعل</span>
+                    <strong id="udMsgsSent">—</strong>
+                    <span>رسالة مرسلة</span>
                 </div>
                 <div class="user-stat">
-                    <strong>89</strong>
-                    <span>يوم نشط</span>
+                    <strong id="udMsgsDeleted">—</strong>
+                    <span>رسالة محذوفة (مؤرشفة)</span>
                 </div>
             </div>
 
             <div class="user-details">
                 <div class="detail-row">
                     <span>البريد:</span>
-                    <span>user@email.com</span>
+                    <span id="udEmail">user@email.com</span>
                 </div>
                 <div class="detail-row">
                     <span>تاريخ التسجيل:</span>
-                    <span>2024-01-01</span>
+                    <span id="udCreatedAt">—</span>
                 </div>
                 <div class="detail-row">
                     <span>آخر نشاط:</span>
-                    <span>منذ ساعتين</span>
+                    <span id="udLastActive">—</span>
                 </div>
                 <div class="detail-row">
                     <span>الحالة:</span>
-                    <span class="status-active">نشط ✅</span>
+                    <span id="udStatus" class="status-active">نشط ✅</span>
+                </div>
+                <div class="detail-row">
+                    <span>الباقة:</span>
+                    <span>
+                        <select id="udPlanSelect" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;">
+                            <option value="free">مجاني</option>
+                            <option value="premium">بريميوم</option>
+                            <option value="premium_plus">بريميوم +</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" id="udSavePlanBtn" style="margin-right:6px;">💾 حفظ الباقة</button>
+                    </span>
                 </div>
             </div>
 
+            <div id="udLoginHistory" class="user-details" style="display:none;"></div>
+
             <div class="user-actions">
-                <button class="btn btn-warning btn-sm">⚠️ تحذير</button>
-                <button class="btn btn-danger btn-sm">🚫 حظر</button>
-                <button class="btn btn-outline btn-sm">📧 إرسال إيميل</button>
-                <button class="btn btn-outline btn-sm">📝 تسجيلات الدخول</button>
+                <button class="btn btn-warning btn-sm" id="udWarnBtn">⚠️ تحذير</button>
+                <button class="btn btn-danger btn-sm" id="udBanBtn">🚫 حظر</button>
+                <button class="btn btn-outline btn-sm" id="udEmailBtn">📧 إرسال إيميل</button>
+                <button class="btn btn-outline btn-sm" id="udLoginHistoryBtn">📝 تسجيلات الدخول</button>
+                <button class="btn btn-outline btn-sm" id="udMessagesBtn">💬 كل رسائله (بما فيها المحذوفة)</button>
             </div>
         </div>
     </div>

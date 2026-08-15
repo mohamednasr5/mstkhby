@@ -1214,6 +1214,10 @@
     color: #10b981;
 }
 
+.status-banned {
+    color: #ef4444;
+}
+
 .user-actions {
     display: flex;
     gap: 12px;
