@@ -438,6 +438,7 @@ class AdminDashboard {
             this.setSidebarBadge(this.elements.sidebarMessagesBadge, totalMessages);
             this.setSidebarBadge(this.elements.sidebarReportsBadge, pendingCount);
 
+<<<<<<< HEAD
             // Pending verification requests were previously invisible — there
             // was no admin UI at all for the applications js/verification.js
             // already collects. Surface a live count in the sidebar.
@@ -445,6 +446,8 @@ class AdminDashboard {
                 .then(snap => this.updateVerificationsBadge(snap.numChildren()))
                 .catch(err => console.warn('verifications count failed:', err));
 
+=======
+>>>>>>> 34786a97004692c0d2790a5c115ae43efb25225d
         } catch (error) {
             console.error('Error loading dashboard:', error);
             this.showToast('خطأ', 'تعذر تحميل بيانات لوحة المعلومات من قاعدة البيانات', 'error');
