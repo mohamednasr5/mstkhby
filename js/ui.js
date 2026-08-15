@@ -841,7 +841,7 @@ class UIManager {
                 platform: 'مستخبي',
                 message: this.truncateText(messageData.content, 80),
                 senderType: messageData.identity === 'anonymous' ? '🤫 مجهول' : '👤 معروف',
-                url: `mstkhby.com/${messageData.recipientUsername}`,
+                url: `mstkhby.com/#${messageData.recipientUsername}`,
                 cta: 'أرسل لي رسالة سرية'
             }
         };

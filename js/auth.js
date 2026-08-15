@@ -360,7 +360,7 @@ class AuthService {
             displayName,
             username: username.toLowerCase(),
             photoURL: user.photoURL || null,
-            profileUrl: `mstkhby.com/${username.toLowerCase()}`,
+            profileUrl: `mstkhby.com/#${username.toLowerCase()}`,
             createdAt: timestamp,
             lastActiveAt: timestamp,
             settings: {
@@ -508,7 +508,7 @@ class AuthService {
 
         await this.database.ref(`users/${this.currentUser.uid}/profile`).update({
             username: normalized,
-            profileUrl: `mstkhby.com/${normalized}`,
+            profileUrl: `mstkhby.com/#${normalized}`,
             usernameChanged: true,
             usernameChangedAt: timestamp,
             updatedAt: timestamp

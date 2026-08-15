@@ -351,7 +351,7 @@ class MstkhbyApp {
                         <div style="font-size: 4rem; margin-bottom: 16px;">📭</div>
                         <h3 style="margin-bottom: 8px;">لا توجد رسائل</h3>
                         <p style="color: var(--text-secondary);">شارك رابطك لاستقبال رسائل سرية!</p>
-                        <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/' + '${this.currentUser?.displayName}')">
+                        <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/#' + '${this.currentUser?.displayName}')">
                             نسخ الرابط
                         </button>
                     </div>
@@ -672,7 +672,7 @@ class MstkhbyApp {
 
             await window.authService?.updateProfile({
                 username,
-                profileUrl: `mstkhby.com/${username}`
+                profileUrl: `mstkhby.com/#${username}`
             });
 
             // Also register the username index (createUserDocument normally
@@ -682,7 +682,7 @@ class MstkhbyApp {
                 ?.ref(`usernames/${username}`)
                 .set({ uid: this.currentUser.uid, createdAt: firebase.database.ServerValue.TIMESTAMP });
 
-            return { ...userData, username, profileUrl: `mstkhby.com/${username}` };
+            return { ...userData, username, profileUrl: `mstkhby.com/#${username}` };
         } catch (error) {
             console.error('Error assigning username:', error);
             return userData;
@@ -706,7 +706,7 @@ class MstkhbyApp {
                 document.getElementById('profileName').innerHTML =
                     `${this.escapeHtml(userData.displayName || 'مستخدم')}${window.UserBadges?.render(userData) || ''}`;
                 document.getElementById('profileUsername').textContent = `@${userData.username || '—'}`;
-                document.getElementById('profileLink').textContent = `mstkhby.com/${userData.username || ''}`;
+                document.getElementById('profileLink').textContent = `mstkhby.com/#${userData.username || ''}`;
                 document.getElementById('statMessages').textContent = userData.stats?.totalMessagesReceived || 0;
                 document.getElementById('statReactions').textContent = userData.stats?.totalReactions || 0;
                 
@@ -751,7 +751,7 @@ class MstkhbyApp {
         }
 
         const confirmed = window.confirm(
-            `هل أنت متأكد من تغيير رابطك إلى mstkhby.com/${newUsername.toLowerCase()}؟ لن تتمكن من تغييره مرة أخرى.`
+            `هل أنت متأكد من تغيير رابطك إلى mstkhby.com/#${newUsername.toLowerCase()}؟ لن تتمكن من تغييره مرة أخرى.`
         );
         if (!confirmed) return;
 
@@ -769,7 +769,7 @@ class MstkhbyApp {
             // without bouncing the user back to the "info" tab.
             const userDataRefreshed = await window.authService?.getCurrentUserData();
             if (userDataRefreshed) {
-                document.getElementById('profileLink').textContent = `mstkhby.com/${userDataRefreshed.username || ''}`;
+                document.getElementById('profileLink').textContent = `mstkhby.com/#${userDataRefreshed.username || ''}`;
             }
             await this.loadProfileTab('links');
 
@@ -846,7 +846,7 @@ class MstkhbyApp {
 
             case 'links': {
                 const userData = await window.authService?.getCurrentUserData();
-                const profileLink = `mstkhby.com/${userData?.username || ''}`;
+                const profileLink = `mstkhby.com/#${userData?.username || ''}`;
                 const canChangeUsername = !userData?.usernameChanged;
 
                 contentEl.innerHTML = `
