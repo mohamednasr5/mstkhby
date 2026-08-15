@@ -4,7 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الأدمن - مستخبي</title>
-    
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Icons (admin isn't a PWA install target, so no manifest link here —
+         just the browser-tab favicon set) -->
+    <meta name="theme-color" content="#0ea5e9">
+    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/icon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/assets/icons/icon-48.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -57,21 +69,21 @@
                         <a href="#users" class="nav-item" data-page="users">
                             <span class="nav-icon">👥</span>
                             <span>المستخدمون</span>
-                            <span class="nav-badge">150K+</span>
+                            <span class="nav-badge" id="sidebarUsersBadge" hidden>0</span>
                         </a>
                     </li>
                     <li>
                         <a href="#messages" class="nav-item" data-page="messages">
                             <span class="nav-icon">✉️</span>
                             <span>الرسائل</span>
-                            <span class="nav-badge warning">2M+</span>
+                            <span class="nav-badge warning" id="sidebarMessagesBadge" hidden>0</span>
                         </a>
                     </li>
                     <li>
                         <a href="#reports" class="nav-item" data-page="reports">
                             <span class="nav-icon">🚩</span>
                             <span>البلاغات</span>
-                            <span class="nav-badge danger">15</span>
+                            <span class="nav-badge danger" id="sidebarReportsBadge" hidden>0</span>
                         </a>
                     </li>
                     <li>

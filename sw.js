@@ -5,7 +5,10 @@
  * a browser shortcut).
  */
 
-const CACHE_VERSION = 'v2';
+// Bumped to v3: the favicon.ico is now a real multi-resolution icon and a
+// root-level /favicon.ico was added — bumping the version forces already
+// installed clients to drop the old cached icon and pick up the new one.
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `mstkhby-static-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -21,6 +24,7 @@ const PRECACHE_URLS = [
     '/css/premium.css',
     '/js/app.js',
     '/js/pwa-install.js',
+    '/favicon.ico',
     '/assets/icons/favicon.svg',
     '/assets/icons/icon-192.png',
     '/assets/icons/icon-512.png'
