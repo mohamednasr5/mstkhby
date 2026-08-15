@@ -816,6 +816,22 @@ class UIManager {
     }
 }
 
+// Safety net: no matter what happens above (a thrown error, a slow/blocked
+// script elsewhere on the page, etc.), the preloader must never stay stuck
+// covering the page content. Force it away after a short grace period.
+function forceHidePreloader() {
+    const preloader = document.getElementById('preloader');
+    if (!preloader) return;
+    preloader.classList.add('hidden');
+    setTimeout(() => preloader.remove(), 500);
+}
+setTimeout(forceHidePreloader, 3000);
+
 // Initialize and export
-window.uiManager = new UIManager();
-console.log('🎨 UI Manager initialized');
+try {
+    window.uiManager = new UIManager();
+    console.log('🎨 UI Manager initialized');
+} catch (error) {
+    console.error('UIManager failed to initialize, forcing preloader hidden:', error);
+    forceHidePreloader();
+}

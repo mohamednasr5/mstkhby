@@ -153,8 +153,31 @@ class AdminDashboard {
             selectAll: document.getElementById('selectAll'),
 
             // Reports
-            reportsList: document.getElementById('reportsList')
+            reportsList: document.getElementById('reportsList'),
+
+            // Sidebar badges (real counts, filled in by loadDashboardData)
+            sidebarUsersBadge: document.getElementById('sidebarUsersBadge'),
+            sidebarMessagesBadge: document.getElementById('sidebarMessagesBadge'),
+            sidebarReportsBadge: document.getElementById('sidebarReportsBadge')
         };
+    }
+
+    /** Formats a count for a compact badge, e.g. 1234 -> "1.2K", 2500000 -> "2.5M". */
+    formatBadgeCount(n) {
+        if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M+';
+        if (n >= 1000) return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'K+';
+        return String(n);
+    }
+
+    /** Shows a sidebar badge with a real count, or hides it entirely when there's nothing to show. */
+    setSidebarBadge(el, count) {
+        if (!el) return;
+        if (!count) {
+            el.hidden = true;
+            return;
+        }
+        el.textContent = this.formatBadgeCount(count);
+        el.hidden = false;
     }
 
     bindEvents() {
@@ -396,6 +419,12 @@ class AdminDashboard {
             const pendingCount = reports.filter(r => (r.status || 'pending') === 'pending').length;
             const notifBadge = document.querySelector('.notif-count');
             if (notifBadge) notifBadge.textContent = pendingCount.toLocaleString('ar-EG');
+
+            // Real sidebar badges — replaces the old hardcoded "150K+ / 2M+ / 15"
+            // placeholders that never reflected actual data.
+            this.setSidebarBadge(this.elements.sidebarUsersBadge, totalUsers);
+            this.setSidebarBadge(this.elements.sidebarMessagesBadge, totalMessages);
+            this.setSidebarBadge(this.elements.sidebarReportsBadge, pendingCount);
 
         } catch (error) {
             console.error('Error loading dashboard:', error);
