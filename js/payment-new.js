@@ -30,7 +30,97 @@ const paymentConfig = {
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
     checkURLParams();
+    initReceiptUpload();
 });
+
+/**
+ * Receipt upload widget: click-to-pick, drag & drop, preview, and removal.
+ * Holds the chosen File on `receiptState.file` until form submission.
+ */
+const receiptState = { file: null };
+
+function initReceiptUpload() {
+    const dropzone = document.getElementById('receiptDropzone');
+    const input = document.getElementById('receiptFileInput');
+    const emptyView = document.getElementById('receiptUploadEmpty');
+    const previewView = document.getElementById('receiptUploadPreview');
+    const previewImg = document.getElementById('receiptPreviewImg');
+    const previewPdf = document.getElementById('receiptPreviewPdf');
+    const fileNameEl = document.getElementById('receiptFileName');
+    const removeBtn = document.getElementById('receiptRemoveBtn');
+
+    if (!dropzone || !input) return;
+
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+    function showPreview(file) {
+        fileNameEl.textContent = file.name;
+        emptyView.hidden = true;
+        previewView.hidden = false;
+
+        if (file.type === 'application/pdf') {
+            previewImg.hidden = true;
+            previewPdf.hidden = false;
+        } else {
+            previewPdf.hidden = true;
+            previewImg.hidden = false;
+            const reader = new FileReader();
+            reader.onload = (e) => { previewImg.src = e.target.result; };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function setFile(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+            showToast('يرجى رفع صورة أو ملف PDF فقط');
+            return;
+        }
+        if (file.size > MAX_SIZE) {
+            showToast('حجم الملف أكبر من 10 ميجابايت');
+            return;
+        }
+        receiptState.file = file;
+        showPreview(file);
+    }
+
+    function clearFile() {
+        receiptState.file = null;
+        input.value = '';
+        previewImg.hidden = true;
+        previewImg.src = '';
+        previewPdf.hidden = true;
+        previewView.hidden = true;
+        emptyView.hidden = false;
+    }
+
+    dropzone.addEventListener('click', (e) => {
+        if (e.target === removeBtn) return;
+        input.click();
+    });
+
+    input.addEventListener('change', () => setFile(input.files?.[0]));
+
+    removeBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearFile();
+    });
+
+    ['dragover', 'dragenter'].forEach(evt => {
+        dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+    });
+    ['dragleave', 'dragend'].forEach(evt => {
+        dropzone.addEventListener(evt, () => dropzone.classList.remove('dragover'));
+    });
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        setFile(e.dataTransfer.files?.[0]);
+    });
+}
 
 /**
  * Initialize page components
@@ -240,14 +330,40 @@ async function submitProof(event) {
     
     const submitBtn = document.getElementById('submitProofBtn');
     const originalBtnContent = submitBtn.innerHTML;
-    
+    const progressEl = document.getElementById('receiptUploadProgress');
+    const dropzoneEl = document.getElementById('receiptDropzone');
+
     try {
+        // Receipt image/PDF is required
+        if (!receiptState.file) {
+            throw new Error('يرجى رفع صورة إيصال الدفع قبل الإرسال');
+        }
+
         // Disable button and show loading
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
             <div class="btn-spinner"></div>
             جاري الإرسال...
         `;
+
+        // Upload the receipt first
+        let receiptUrl = null;
+        if (!window.mediaApi) {
+            throw new Error('تعذر تحميل خدمة رفع الملفات، حاول تحديث الصفحة');
+        }
+        try {
+            if (progressEl) { progressEl.hidden = false; dropzoneEl?.classList.add('uploading'); }
+            const uploadResult = await window.mediaApi.upload(receiptState.file, { category: 'payment-proofs' });
+            receiptUrl = uploadResult.url;
+        } catch (uploadError) {
+            console.error('❌ Receipt upload error:', uploadError);
+            if (/يجب تسجيل الدخول/.test(uploadError.message || '')) {
+                throw new Error('يجب تسجيل الدخول لرفع صورة الإيصال. سجّل دخولك ثم حاول مرة أخرى.');
+            }
+            throw new Error('تعذر رفع صورة الإيصال، حاول مرة أخرى');
+        } finally {
+            if (progressEl) { progressEl.hidden = true; dropzoneEl?.classList.remove('uploading'); }
+        }
         
         // Gather form data
         const formData = {
@@ -257,6 +373,7 @@ async function submitProof(event) {
             paymentMethod: document.getElementById('paymentMethodSelect').value,
             transactionId: document.getElementById('transactionId').value.trim(),
             notes: document.getElementById('notes').value.trim(),
+            receiptUrl,
             
             // Plan info
             planId: paymentConfig.currentPlan,
@@ -284,6 +401,7 @@ async function submitProof(event) {
         
         // Reset form
         document.getElementById('proofForm').reset();
+        document.getElementById('receiptRemoveBtn')?.click();
         
     } catch (error) {
         console.error('❌ Submission error:', error);

@@ -479,6 +479,118 @@
     min-height: 100px;
 }
 
+/* Receipt Upload Dropzone */
+.receipt-upload {
+    border: 2px dashed var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: var(--spacing-xl);
+}
+
+.receipt-upload:hover,
+.receipt-upload.dragover {
+    border-color: var(--primary-500);
+    background: rgba(14, 165, 233, 0.06);
+}
+
+.receipt-upload__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    color: var(--text-tertiary);
+}
+
+.receipt-upload__empty svg {
+    color: var(--primary-500);
+    margin-bottom: 4px;
+}
+
+.receipt-upload__empty p {
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    margin: 0;
+}
+
+.receipt-upload__empty span {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.receipt-upload__preview {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.receipt-upload__preview img {
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border-light);
+    background: var(--surface);
+}
+
+.receipt-upload__pdf-icon {
+    width: 88px;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border-light);
+    background: var(--surface);
+}
+
+.receipt-upload__file-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0;
+}
+
+.receipt-upload__file-info span {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.receipt-upload__remove {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: var(--accent-red);
+    font-weight: 700;
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    padding: 0;
+}
+
+.receipt-upload__progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.receipt-upload__progress .btn-spinner {
+    border: 3px solid rgba(14, 165, 233, 0.25);
+    border-top-color: var(--primary-500);
+    width: 18px;
+    height: 18px;
+}
+
 .submit-proof-btn {
     width: 100%;
     max-width: 400px;

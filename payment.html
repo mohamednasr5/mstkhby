@@ -410,6 +410,36 @@
                                 <label for="notes">ملاحظات إضافية</label>
                                 <textarea id="notes" rows="3" placeholder="أي معلومات إضافية تساعدنا في تفعيل اشتراكك..."></textarea>
                             </div>
+
+                            <div class="form-group-new full-width">
+                                <label for="receiptFileInput">صورة إيصال الدفع *</label>
+                                <div class="receipt-upload" id="receiptDropzone">
+                                    <input type="file" id="receiptFileInput" accept="image/*,application/pdf" hidden>
+
+                                    <div class="receipt-upload__empty" id="receiptUploadEmpty">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                            <path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M4 16V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <p><strong>اضغط لرفع صورة الإيصال</strong> أو اسحبها هنا</p>
+                                        <span>JPG, PNG أو PDF — حتى 10 ميجابايت</span>
+                                    </div>
+
+                                    <div class="receipt-upload__preview" id="receiptUploadPreview" hidden>
+                                        <img id="receiptPreviewImg" alt="معاينة الإيصال" hidden>
+                                        <div id="receiptPreviewPdf" class="receipt-upload__pdf-icon" hidden>📄</div>
+                                        <div class="receipt-upload__file-info">
+                                            <span id="receiptFileName">receipt.jpg</span>
+                                            <button type="button" class="receipt-upload__remove" id="receiptRemoveBtn">✖ إزالة</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="receipt-upload__progress" id="receiptUploadProgress" hidden>
+                                        <div class="btn-spinner"></div>
+                                        <span>جاري رفع الإيصال...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <button type="submit" class="submit-proof-btn" id="submitProofBtn">
@@ -531,6 +561,7 @@
     <script src="js/auth.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/media-api.js"></script>
 
     <!-- Payment Page Script -->
     <script src="js/payment-new.js"></script>

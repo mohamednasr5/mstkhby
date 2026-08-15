@@ -12,7 +12,7 @@
         },
         "subscriptions": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
-          ".write": "auth != null && auth.uid === $uid"
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
         },
         "payments": {
           ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
@@ -58,7 +58,8 @@
 
     "deletedMessages": {
       ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      ".indexOn": ["senderId", "recipientId"]
     },
 
     "platformSettings": {
