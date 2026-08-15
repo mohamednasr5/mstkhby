@@ -10,9 +10,12 @@ const paymentConfig = {
     instapayLink: 'https://ipn.eg/S/engmohamednasr/instapay/8NShbl',
     instapayPhone: '01279934735',
     vodafonePhone: '01279934735',
-    bankIBAN: 'SA7630609031909112576',
-    bankAccountName: 'أحمد نصر محمد السيد',
-    bankSaudiNumber: '01279934735',
+    bankName: 'D360',
+    bankIBAN: 'SA7636036036031909112576',
+    bankAccountName: 'أيمن نصر نصر',
+    barqNumber: '01279934735',
+    whatsappNumber: '201279934735',
+    paypalLink: '', // TODO: add the real PayPal.me / checkout link
     
     plans: {
         free: { name: 'مجاني', price: 0, currency: 'ر.س' },
@@ -60,6 +63,26 @@ function openInstapayLink() {
     
     // Show toast notification
     showToast('جاري فتح رابط الإنستاباي...');
+}
+
+/**
+ * Open WhatsApp with a pre-filled message to send payment proof
+ */
+function openWhatsappProof() {
+    const plan = paymentConfig.plans[paymentConfig.currentPlan];
+    const text = encodeURIComponent(`مرحباً، أرسل إثبات دفع خطة "${plan.name}" (${plan.price} ${plan.currency}) في مستخبي.`);
+    window.open(`https://wa.me/${paymentConfig.whatsappNumber}?text=${text}`, '_blank');
+}
+
+/**
+ * Open PayPal / card checkout link
+ */
+function openPaypalLink() {
+    if (!paymentConfig.paypalLink) {
+        showToast('رابط الدفع بالفيزا/PayPal غير مُفعّل بعد — يرجى استخدام طريقة أخرى أو التواصل عبر واتساب');
+        return;
+    }
+    window.open(paymentConfig.paypalLink, '_blank');
 }
 
 /**
@@ -186,12 +209,6 @@ function updatePlanDisplay(planId) {
     
     if (nameEl) nameEl.textContent = plan.name;
     if (priceEl) priceEl.textContent = `${plan.price} ${plan.currency} / شهرياً`;
-    
-    // Update bank amount display for D360
-    const bankAmountEl = document.getElementById('bankAmountD360');
-    if (bankAmountEl && plan.price > 0) {
-        bankAmountEl.textContent = `D${plan.price}`;
-    }
 }
 
 /**
