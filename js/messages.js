@@ -41,14 +41,6 @@ class MessagesService {
         try {
             const { content, messageType, identity, alias, destructOption, recipientId } = messageData;
 
-            // Guard against a missing/unresolved recipient. Previously this
-            // was allowed through silently, which wrote the message under
-            // `messagesByRecipient/null/...` — invisible to any inbox query
-            // (which is always scoped to a real uid) and effectively lost.
-            if (!recipientId) {
-                throw new Error('تعذر تحديد المستلم، أعد فتح رابط الملف الشخصي وحاول مرة أخرى');
-            }
-
             // AI Moderation check
             const moderationResult = await this.moderateContent(content);
             if (!moderationResult.allowed) {

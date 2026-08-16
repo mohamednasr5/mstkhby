@@ -49,11 +49,20 @@ class UIManager {
             signupForm: document.getElementById('signupForm'),
             authTabs: document.querySelectorAll('.auth-tab'),
             
+            // Send Message Modal
+            sendMessageModal: document.getElementById('sendMessageModal'),
+            sendMessageForm: document.getElementById('sendMessageForm'),
+
             // Demo Video Modal
             demoBtn: document.getElementById('demoBtn'),
             videoModal: document.getElementById('videoModal'),
             closeVideoModal: document.getElementById('closeVideoModal'),
             demoVideo: document.getElementById('demoVideo'),
+            
+            // Forms
+            aliasInput: document.getElementById('aliasInput'),
+            messageTypeInputs: document.querySelectorAll('input[name="messageType"]'),
+            identityInputs: document.querySelectorAll('input[name="identity"]'),
             
             // Toast Container
             toastContainer: document.getElementById('toastContainer'),
@@ -133,6 +142,20 @@ class UIManager {
             });
         });
 
+        // Message type selection
+        this.elements.messageTypeInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                this.handleMessageTypeChange(e.target.value);
+            });
+        });
+
+        // Identity selection
+        this.elements.identityInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                this.handleIdentityChange(e.target.value);
+            });
+        });
+
         // Form submissions
         if (this.elements.loginForm) {
             this.elements.loginForm.addEventListener('submit', (e) => {
@@ -145,6 +168,13 @@ class UIManager {
             this.elements.signupForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.handleSignup(e.target);
+            });
+        }
+
+        if (this.elements.sendMessageForm) {
+            this.elements.sendMessageForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleSendMessage(e.target);
             });
         }
 
@@ -337,49 +367,17 @@ class UIManager {
         }
     }
 
-    // The send-message form used to live in a static modal in index.html,
-    // so its listeners were bound once in bindEvents() at boot. Now it's
-    // built dynamically as part of the standalone public-profile page, so
-    // it's bound here, once, right after that page is inserted into the DOM.
-    bindSendMessageForm() {
-        const form = document.getElementById('sendMessageForm');
-        if (!form || form.dataset.bound) return;
-        form.dataset.bound = 'true';
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleSendMessage(e.target);
-        });
-
-        form.querySelectorAll('input[name="messageType"]').forEach(input => {
-            input.addEventListener('change', (e) => this.handleMessageTypeChange(e.target.value));
-        });
-
-        form.querySelectorAll('input[name="identity"]').forEach(input => {
-            input.addEventListener('change', (e) => this.handleIdentityChange(e.target.value));
-        });
-
-        this.elements.aliasInput = document.getElementById('aliasInput');
-        this.refreshIdentityGate();
-    }
-
-    // Store the currently viewed profile's uid/username so the send form
-    // knows who a message actually goes to. This replaces the old approach
-    // of reading `?to=` from the URL, which this app never sets (routing is
-    // path-based, /username) and was the root cause of messages being
-    // written with a null recipientId and silently lost.
-    setActiveRecipient(recipientData) {
-        this.activeRecipient = recipientData || null;
-
-        const recipientName = document.getElementById('recipientName');
-        const recipientAvatar = document.getElementById('recipientAvatar');
-
+    // Open send message modal
+    openSendMessageModal(recipientData) {
         if (recipientData) {
+            const recipientName = document.getElementById('recipientName');
+            const recipientAvatar = document.getElementById('recipientAvatar');
+            
             if (recipientName) recipientName.textContent = `@${recipientData.username}`;
             if (recipientAvatar) recipientAvatar.textContent = recipientData.displayName?.[0] || '👤';
         }
-
-        this.refreshIdentityGate();
+        
+        this.openModal(this.elements.sendMessageModal);
     }
 
     // Generic modal functions
@@ -431,43 +429,6 @@ class UIManager {
             aliasInput.classList.toggle('hidden', identity !== 'alias');
             if (identity === 'alias') {
                 aliasInput.focus();
-            }
-        }
-    }
-
-    // "reveal" identity shows the sender's real name/photo, so it requires
-    // an authenticated account. Locks that option when logged out and
-    // re-checks it live whenever auth state changes (see setupAuthListener
-    // in app.js), so a user who logs in without refreshing the page sees
-    // the option unlock immediately.
-    refreshIdentityGate() {
-        const revealInput = document.querySelector('input[name="identity"][value="reveal"]');
-        if (!revealInput) return;
-
-        const revealLabel = revealInput.closest('.identity-option');
-        const isLoggedIn = !!window.authService?.currentUser;
-
-        revealInput.disabled = !isLoggedIn;
-        revealLabel?.classList.toggle('locked', !isLoggedIn);
-
-        let hint = revealLabel?.querySelector('.identity-login-hint');
-        if (!isLoggedIn) {
-            if (!hint) {
-                hint = document.createElement('small');
-                hint.className = 'identity-login-hint';
-                hint.textContent = 'سجّل دخول لإظهار اسمك';
-                revealLabel?.appendChild(hint);
-            }
-        } else {
-            hint?.remove();
-        }
-
-        // If the user was on "reveal" and got logged out, fall back to anonymous.
-        if (!isLoggedIn && revealInput.checked) {
-            const anonymousInput = document.querySelector('input[name="identity"][value="anonymous"]');
-            if (anonymousInput) {
-                anonymousInput.checked = true;
-                this.handleIdentityChange('anonymous');
             }
         }
     }
@@ -700,12 +661,9 @@ class UIManager {
                 alias: identity === 'alias' ? alias : null,
                 destructOption,
                 createdAt: new Date().toISOString(),
-                recipientId: this.activeRecipient?.id || null
+                // Recipient info would be set from URL params or context
+                recipientId: new URLSearchParams(window.location.search).get('to')
             };
-
-            if (!messageData.recipientId) {
-                throw new Error('تعذر تحديد المستلم، أعد فتح رابط الملف الشخصي وحاول مرة أخرى');
-            }
 
             // Send via messages service
             await window.messagesService?.sendMessage(messageData);
@@ -716,9 +674,8 @@ class UIManager {
                 'success'
             );
 
+            this.closeModal(this.elements.sendMessageModal);
             form.reset();
-            this.handleMessageTypeChange('text');
-            this.handleIdentityChange('anonymous');
 
         } catch (error) {
             this.showToast(
