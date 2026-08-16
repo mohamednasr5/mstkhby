@@ -595,7 +595,14 @@ class AuthService {
                 if (entitlementSnaps[i].exists()) entitlements[field] = entitlementSnaps[i].val();
             });
 
-            if (!profile.displayName) return null;
+            // A profile can legitimately be missing displayName (e.g. an
+            // account created/edited outside the normal signup flow, or a
+            // manual DB edit that dropped the field). That used to make the
+            // whole page look like the user doesn't exist and permanently
+            // disabled the send button. The account is real — usernameSnap
+            // resolved to a uid — so fall back to the username instead of
+            // failing the whole lookup.
+            if (!profile.displayName) profile.displayName = profile.username || username;
             return { id: uid, ...profile, ...entitlements };
         } catch (error) {
             console.error('Error getting user by username:', error);
