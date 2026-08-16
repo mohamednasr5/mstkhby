@@ -1334,3 +1334,199 @@
         animation: none;
     }
 }
+
+/* ===================================
+   Message Media Dropzone
+   Same visual pattern as .receipt-upload (payment-new.css) — click-to-pick,
+   drag & drop, preview, and a remove button — reused here for attaching a
+   photo/video to a secret message.
+   =================================== */
+.file-dropzone {
+    border: 2px dashed var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: var(--spacing-xl);
+    margin-top: var(--spacing-md);
+}
+
+.file-dropzone:hover,
+.file-dropzone.dragover {
+    border-color: var(--primary-500);
+    background: rgba(14, 165, 233, 0.06);
+}
+
+.file-dropzone__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    color: var(--text-tertiary);
+}
+
+.file-dropzone__empty svg {
+    color: var(--primary-500);
+    margin-bottom: 4px;
+}
+
+.file-dropzone__empty p {
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    margin: 0;
+}
+
+.file-dropzone__empty span {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.file-dropzone__preview {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.file-dropzone__preview img,
+.file-dropzone__preview video {
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border-light);
+    background: var(--surface);
+}
+
+.file-dropzone__file-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0;
+}
+
+.file-dropzone__file-info span {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-dropzone__remove {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: var(--accent-red);
+    font-weight: 700;
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    padding: 0;
+}
+
+.file-dropzone__progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.file-dropzone__progress .btn-spinner {
+    border: 3px solid rgba(14, 165, 233, 0.25);
+    border-top-color: var(--primary-500);
+    width: 18px;
+    height: 18px;
+}
+
+/* These three states set display:flex directly so it overrides the
+   browser's default [hidden]{display:none} rule (author styles win over
+   the UA stylesheet) — without this all three would render at once. */
+.file-dropzone__empty[hidden],
+.file-dropzone__preview[hidden],
+.file-dropzone__progress[hidden] {
+    display: none;
+}
+
+/* ===================================
+   Received Media Viewer (inbox message detail)
+   =================================== */
+.detail-media {
+    margin: var(--spacing-md) 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-tertiary);
+}
+
+.detail-media img,
+.detail-media video {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    background: #000;
+}
+
+.detail-media img {
+    cursor: zoom-in;
+}
+
+/* Fullscreen lightbox for viewing a received image at full size */
+.media-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: var(--spacing-xl);
+    cursor: zoom-out;
+}
+
+.media-lightbox.hidden {
+    display: none;
+}
+
+.media-lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: var(--radius-md);
+}
+
+.media-lightbox__close {
+    position: absolute;
+    top: var(--spacing-lg);
+    left: var(--spacing-lg);
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Small media thumbnail in the inbox list preview */
+.message-preview-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    border: 1px solid var(--border-light);
+    margin-inline-end: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+.file-dropzone.uploading {
+    border-color: var(--primary-500);
+    background: rgba(14, 165, 233, 0.06);
+    cursor: default;
+}
