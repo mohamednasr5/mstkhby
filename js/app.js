@@ -482,7 +482,15 @@ class MstkhbyApp {
                     </div>
                     <span class="message-time">${window.uiManager?.formatRelativeDate(message.createdAt)}</span>
                 </div>
-                <p class="message-preview-text">${this.escapeHtml(message.content)}</p>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    ${message.mediaUrl && message.mediaType === 'image'
+                        ? `<img class="message-preview-thumb" src="${message.mediaUrl}" alt="معاينة">`
+                        : ''}
+                    ${message.mediaUrl && message.mediaType === 'video'
+                        ? `<span class="message-preview-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--bg-tertiary);font-size:20px;">🎥</span>`
+                        : ''}
+                    <p class="message-preview-text">${this.escapeHtml(message.content)}</p>
+                </div>
                 <div class="message-meta">
                     ${message.destructOption && message.destructOption !== 'normal' ? (destructIndicator[message.destructOption] || '') : ''}
                     ${message.mediaUrl ? '<span class="message-type-indicator">' + window.storageService?.getFileTypeIcon(message.mediaType) + '</span>' : ''}
@@ -553,7 +561,7 @@ class MstkhbyApp {
                         <div class="detail-media">
                             ${message.mediaType === 'video' 
                                 ? `<video src="${message.mediaUrl}" controls></video>`
-                                : `<img src="${message.mediaUrl}" alt="صورة مرفقة">`
+                                : `<img src="${message.mediaUrl}" alt="صورة مرفقة" onclick="window.app.openMediaLightbox('${message.mediaUrl}')">`
                             }
                         </div>
                     ` : ''}
@@ -616,6 +624,31 @@ class MstkhbyApp {
                 </div>
             `;
         }
+    }
+
+    /**
+     * Open a received image full-size in a lightbox overlay. Built lazily
+     * on first use so inbox.html doesn't need extra static markup.
+     */
+    openMediaLightbox(url) {
+        let lightbox = document.getElementById('mediaLightbox');
+        if (!lightbox) {
+            lightbox = document.createElement('div');
+            lightbox.id = 'mediaLightbox';
+            lightbox.className = 'media-lightbox hidden';
+            lightbox.innerHTML = `
+                <button class="media-lightbox__close" aria-label="إغلاق">✖</button>
+                <img id="mediaLightboxImg" src="" alt="صورة مكبرة">
+            `;
+            document.body.appendChild(lightbox);
+            lightbox.addEventListener('click', () => this.closeMediaLightbox());
+        }
+        lightbox.querySelector('#mediaLightboxImg').src = url;
+        lightbox.classList.remove('hidden');
+    }
+
+    closeMediaLightbox() {
+        document.getElementById('mediaLightbox')?.classList.add('hidden');
     }
 
     /**
@@ -1241,11 +1274,32 @@ class MstkhbyApp {
                         <div class="form-group">
                             <textarea id="messageContent" placeholder="اكتب رسالتك هنا... 🤫" rows="4" required></textarea>
                             <div class="media-upload hidden" id="mediaUpload">
-                                <input type="file" id="mediaFile" accept="image/*,video/*">
-                                <label for="mediaFile" class="upload-btn">
-                                    <span>📎 ارفق ملف</span>
-                                </label>
-                                <div class="preview" id="mediaPreview"></div>
+                                <div class="file-dropzone" id="messageMediaDropzone">
+                                    <input type="file" id="mediaFile" accept="image/*,video/*" hidden>
+
+                                    <div class="file-dropzone__empty" id="messageMediaEmpty">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                            <path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M4 16V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <p><strong>اضغط لرفع صورة أو فيديو</strong> أو اسحبه هنا</p>
+                                        <span id="messageMediaHint">JPG, PNG أو GIF — حتى 50 ميجابايت</span>
+                                    </div>
+
+                                    <div class="file-dropzone__preview" id="messageMediaPreview" hidden>
+                                        <img id="messageMediaPreviewImg" alt="معاينة الصورة" hidden>
+                                        <video id="messageMediaPreviewVideo" muted hidden></video>
+                                        <div class="file-dropzone__file-info">
+                                            <span id="messageMediaFileName">file.jpg</span>
+                                            <button type="button" class="file-dropzone__remove" id="messageMediaRemoveBtn">✖ إزالة</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="file-dropzone__progress" id="messageMediaProgress" hidden>
+                                        <div class="btn-spinner"></div>
+                                        <span>جاري رفع الملف...</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
