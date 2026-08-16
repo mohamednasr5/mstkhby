@@ -1147,7 +1147,15 @@ class MstkhbyApp {
         
         if (!publicPage) {
             publicPage = this.createPublicProfilePage();
-            document.body.appendChild(publicPage);
+            // Insert right before the footer (not at the very end of
+            // <body>) so the page shows navbar -> content -> footer in
+            // the right visual order, instead of appearing below it.
+            const footer = document.getElementById('siteFooter');
+            if (footer) {
+                footer.parentNode.insertBefore(publicPage, footer);
+            } else {
+                document.body.appendChild(publicPage);
+            }
             window.uiManager?.bindSendMessageForm();
         }
 
@@ -1317,7 +1325,12 @@ class MstkhbyApp {
                     </div>
                 </div>
             `;
-            document.body.appendChild(notFoundPage);
+            const footer = document.getElementById('siteFooter');
+            if (footer) {
+                footer.parentNode.insertBefore(notFoundPage, footer);
+            } else {
+                document.body.appendChild(notFoundPage);
+            }
         }
 
         this.hideDynamicPages();
