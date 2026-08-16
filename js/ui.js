@@ -361,6 +361,101 @@ class UIManager {
 
         this.elements.aliasInput = document.getElementById('aliasInput');
         this.refreshIdentityGate();
+        this.initMessageMediaUpload();
+    }
+
+    // Message-attachment dropzone: click-to-pick, drag & drop, preview
+    // (image thumbnail or video thumbnail), and removal — same pattern as
+    // the payment receipt uploader (js/payment-new.js initReceiptUpload).
+    // Holds the chosen File on this.pendingMediaFile until form submission,
+    // where handleSendMessage() reads it and messages.js uploads it to R2.
+    initMessageMediaUpload() {
+        const dropzone = document.getElementById('messageMediaDropzone');
+        const input = document.getElementById('mediaFile');
+        const emptyView = document.getElementById('messageMediaEmpty');
+        const previewView = document.getElementById('messageMediaPreview');
+        const previewImg = document.getElementById('messageMediaPreviewImg');
+        const previewVideo = document.getElementById('messageMediaPreviewVideo');
+        const fileNameEl = document.getElementById('messageMediaFileName');
+        const removeBtn = document.getElementById('messageMediaRemoveBtn');
+
+        if (!dropzone || !input || dropzone.dataset.bound) return;
+        dropzone.dataset.bound = 'true';
+
+        const MAX_SIZE = 50 * 1024 * 1024; // 50MB — matches the Worker's limit
+
+        const showPreview = (file) => {
+            fileNameEl.textContent = file.name;
+            emptyView.hidden = true;
+            previewView.hidden = false;
+
+            if (file.type.startsWith('video/')) {
+                previewImg.hidden = true;
+                previewVideo.hidden = false;
+                previewVideo.src = URL.createObjectURL(file);
+            } else {
+                previewVideo.hidden = true;
+                previewImg.hidden = false;
+                const reader = new FileReader();
+                reader.onload = (e) => { previewImg.src = e.target.result; };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        const setFile = (file) => {
+            if (!file) return;
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+            if (!isImage && !isVideo) {
+                this.showToast('نوع ملف غير مدعوم', 'يرجى رفع صورة أو فيديو فقط', 'warning');
+                return;
+            }
+            if (file.size > MAX_SIZE) {
+                this.showToast('الملف كبير جدًا', 'الحد الأقصى 50 ميجابايت', 'warning');
+                return;
+            }
+            this.pendingMediaFile = file;
+            showPreview(file);
+        };
+
+        this.clearPendingMediaFile = () => {
+            this.pendingMediaFile = null;
+            input.value = '';
+            previewImg.hidden = true;
+            previewImg.src = '';
+            if (previewVideo.src) URL.revokeObjectURL(previewVideo.src);
+            previewVideo.hidden = true;
+            previewVideo.src = '';
+            previewView.hidden = true;
+            emptyView.hidden = false;
+        };
+
+        dropzone.addEventListener('click', (e) => {
+            if (e.target === removeBtn) return;
+            input.click();
+        });
+
+        input.addEventListener('change', () => setFile(input.files?.[0]));
+
+        removeBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.clearPendingMediaFile();
+        });
+
+        ['dragover', 'dragenter'].forEach(evt => {
+            dropzone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'dragend'].forEach(evt => {
+            dropzone.addEventListener(evt, () => dropzone.classList.remove('dragover'));
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            setFile(e.dataTransfer.files?.[0]);
+        });
     }
 
     // Store the currently viewed profile's uid/username so the send form
@@ -408,6 +503,8 @@ class UIManager {
     handleMessageTypeChange(type) {
         const mediaUpload = document.getElementById('mediaUpload');
         const typeOptions = document.querySelectorAll('.type-option');
+        const mediaFileInput = document.getElementById('mediaFile');
+        const hint = document.getElementById('messageMediaHint');
         
         typeOptions.forEach(opt => {
             opt.classList.toggle('active', opt.querySelector('input').checked);
@@ -415,6 +512,20 @@ class UIManager {
 
         if (mediaUpload) {
             mediaUpload.classList.toggle('hidden', type === 'text');
+        }
+
+        // Switching message type invalidates whatever was picked before
+        // (e.g. had an image selected, switched to "video").
+        this.clearPendingMediaFile?.();
+
+        if (mediaFileInput && hint) {
+            if (type === 'video') {
+                mediaFileInput.accept = 'video/*';
+                hint.textContent = 'MP4 أو WEBM — حتى 50 ميجابايت';
+            } else if (type === 'image') {
+                mediaFileInput.accept = 'image/*';
+                hint.textContent = 'JPG, PNG أو GIF — حتى 50 ميجابايت';
+            }
         }
     }
 
@@ -687,10 +798,26 @@ class UIManager {
         const destructOption = form.querySelector('#destructOption')?.value || 'normal';
         const alias = this.elements.aliasInput?.value || '';
         const submitBtn = form.querySelector('button[type="submit"]');
+        const dropzone = document.getElementById('messageMediaDropzone');
+        const emptyView = document.getElementById('messageMediaEmpty');
+        const previewView = document.getElementById('messageMediaPreview');
+        const progressView = document.getElementById('messageMediaProgress');
+
+        if (messageType !== 'text' && !this.pendingMediaFile) {
+            this.showToast('أرفق ملف', 'اختر صورة أو فيديو أولاً، أو بدّل نوع الرسالة إلى نص', 'warning');
+            return;
+        }
 
         try {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner"></span> جاري الإرسال...';
+
+            if (this.pendingMediaFile) {
+                emptyView.hidden = true;
+                previewView.hidden = true;
+                progressView.hidden = false;
+                dropzone.classList.add('uploading');
+            }
 
             // Prepare message data
             const messageData = {
@@ -700,7 +827,8 @@ class UIManager {
                 alias: identity === 'alias' ? alias : null,
                 destructOption,
                 createdAt: new Date().toISOString(),
-                recipientId: this.activeRecipient?.id || null
+                recipientId: this.activeRecipient?.id || null,
+                mediaFile: this.pendingMediaFile || null
             };
 
             if (!messageData.recipientId) {
@@ -717,6 +845,7 @@ class UIManager {
             );
 
             form.reset();
+            this.clearPendingMediaFile?.();
             this.handleMessageTypeChange('text');
             this.handleIdentityChange('anonymous');
 
@@ -729,6 +858,14 @@ class UIManager {
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<span>🔐 إرسال رسالة سرية</span>';
+            dropzone?.classList.remove('uploading');
+            if (progressView) progressView.hidden = true;
+            // Only restore the picker view if a file is still pending
+            // (i.e. the send failed and didn't get cleared above).
+            if (this.pendingMediaFile && emptyView && previewView) {
+                emptyView.hidden = true;
+                previewView.hidden = false;
+            }
         }
     }
 
