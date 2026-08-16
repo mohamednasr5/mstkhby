@@ -242,13 +242,23 @@ class MstkhbyApp {
     }
 
     /**
-     * If 404.html bounced us here from a clean URL like
-     * mstkhby.com/mohamednasrofficial, sessionStorage has the original
-     * path. Put that path back in the address bar (so the user still
-     * sees the nice clean link, not index.html or a #) and open that
-     * user's public send-message page directly.
+     * This app is deployed on Firebase Hosting, which rewrites every path
+     * (see the "**" -> "/index.html" rule in firebase.json) straight to
+     * index.html with a normal 200 — 404.html never runs, so the old
+     * "stash the path in sessionStorage from 404.html" trick (kept below
+     * as a harmless fallback for other static hosts) never fires. The
+     * actual clean URL is sitting in `location.pathname` on every load,
+     * so check that directly.
      */
     handleCleanUrlRedirect() {
+        const pathUsername = this.getUsernameFromPathname();
+        if (pathUsername) {
+            this.showPublicProfilePage(pathUsername);
+            return;
+        }
+
+        // Fallback for static hosts (e.g. GitHub Pages) that do route
+        // through a real 404.html, which stashes the original path here.
         const rawPath = sessionStorage.getItem('mstkhby_redirect_path');
         if (!rawPath) return;
         sessionStorage.removeItem('mstkhby_redirect_path');
@@ -261,6 +271,31 @@ class MstkhbyApp {
         history.replaceState(null, '', '/' + username);
 
         this.showPublicProfilePage(username);
+    }
+
+    /**
+     * Extract a username from the current URL path, e.g.
+     * mstkhby.com/mohamednasrofficial -> "mohamednasrofficial".
+     * Returns null for the real static/known routes so those keep working
+     * normally (index.html, inbox.html, profile.html, payment.html, /pages/...).
+     */
+    getUsernameFromPathname() {
+        const segment = window.location.pathname.replace(/^\/+|\/+$/g, '');
+        if (!segment) return null;
+
+        const reservedRoutes = [
+            'index.html', 'inbox.html', 'profile.html', 'payment.html',
+            '404.html', 'admin', 'pages', 'assets', 'css', 'js', 'api'
+        ];
+        const firstSegment = segment.split('/')[0];
+        if (reservedRoutes.includes(firstSegment)) return null;
+
+        // A username can't contain a slash or a dot (rules out asset paths
+        // like manifest.json, sitemap.xml, favicon.ico, sw.js, etc.)
+        if (segment.includes('/') || segment.includes('.')) return null;
+        if (segment.length < 3) return null;
+
+        return segment;
     }
 
     /**
@@ -331,10 +366,11 @@ class MstkhbyApp {
      * Show home page
      */
     showHomePage() {
-        // Home page is already in HTML, just ensure it's visible
-        const mainContent = document.querySelector('main') || document.body;
-        
-        // Hide any dynamic pages
+        // Un-hide the static homepage sections (hero/features/pricing/etc.)
+        // and hide any dynamic page (public profile, 404) on top of them.
+        document.querySelectorAll('.home-page-section').forEach(section => {
+            section.classList.remove('hidden');
+        });
         this.hideDynamicPages();
     }
 
@@ -1116,6 +1152,7 @@ class MstkhbyApp {
         }
 
         this.hideDynamicPages();
+        this.hideHomePageSections();
         publicPage.classList.remove('hidden');
         publicPage.classList.add('page-enter');
 
@@ -1284,6 +1321,7 @@ class MstkhbyApp {
         }
 
         this.hideDynamicPages();
+        this.hideHomePageSections();
         notFoundPage.classList.remove('hidden');
     }
 
@@ -1449,11 +1487,24 @@ class MstkhbyApp {
     // ==================== UTILITIES ====================
 
     /**
-     * Hide all dynamic pages
+     * Hide all dynamic pages (public profile, 404, etc). Does NOT touch
+     * the static homepage sections — see hideHomePageSections() for that.
      */
     hideDynamicPages() {
         document.querySelectorAll('.dynamic-page').forEach(page => {
             page.classList.add('hidden');
+        });
+    }
+
+    /**
+     * Hide the static homepage sections (hero/features/pricing/etc). Used
+     * whenever a dynamic page (public profile, 404) needs to take over the
+     * screen — otherwise it just renders on top of the still-visible
+     * homepage, which looks like "the link doesn't do anything."
+     */
+    hideHomePageSections() {
+        document.querySelectorAll('.home-page-section').forEach(section => {
+            section.classList.add('hidden');
         });
     }
 
