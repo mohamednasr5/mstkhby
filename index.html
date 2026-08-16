@@ -168,7 +168,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero" id="home">
+    <section class="hero home-page-section" id="home">
         <div class="hero-bg">
             <div class="gradient-orb orb-1"></div>
             <div class="gradient-orb orb-2"></div>
@@ -279,7 +279,7 @@
     </section>
 
     <!-- Features Section -->
-    <section class="features" id="features">
+    <section class="features home-page-section" id="features">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">المميزات</span>
@@ -364,7 +364,7 @@
     </section>
 
     <!-- How It Works Section -->
-    <section class="how-it-works" id="how-it-works">
+    <section class="how-it-works home-page-section" id="how-it-works">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">كيف يعمل</span>
@@ -417,7 +417,7 @@
     </section>
 
     <!-- Privacy Levels Section -->
-    <section class="privacy-levels">
+    <section class="privacy-levels home-page-section">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">مستويات السرية</span>
@@ -479,7 +479,7 @@
     </section>
 
     <!-- Pricing Section -->
-    <section class="pricing" id="pricing">
+    <section class="pricing home-page-section" id="pricing">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">الأسعار</span>
@@ -559,7 +559,7 @@
     </section>
 
     <!-- Premium Features Section -->
-    <section class="premium-features" id="premium">
+    <section class="premium-features home-page-section" id="premium">
         <div class="container">
             <div class="section-header">
                 <span class="section-badge">مميزات متقدمة</span>
@@ -795,7 +795,7 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="cta">
+    <section class="cta home-page-section">
         <div class="container">
             <div class="cta-content">
                 <h2>جاهز تبدأ؟</h2>
@@ -963,102 +963,6 @@
         <div class="modal video-modal">
             <button class="modal-close" id="closeVideoModal">&times;</button>
             <video id="demoVideo" src="01.mp4" controls playsinline preload="metadata"></video>
-        </div>
-    </div>
-
-    <!-- Send Message Modal (for public link) -->
-    <div class="modal-overlay" id="sendMessageModal">
-        <div class="modal send-message-modal">
-            <button class="modal-close" id="closeSendMessageModal">&times;</button>
-            
-            <div class="send-header">
-                <div class="recipient-info">
-                    <div class="recipient-avatar" id="recipientAvatar">👤</div>
-                    <div>
-                        <h3>أرسل رسالة سرية لـ</h3>
-                        <span class="recipient-name" id="recipientName">@username</span>
-                    </div>
-                </div>
-            </div>
-
-            <form class="send-form" id="sendMessageForm">
-                <!-- Message Type Selection -->
-                <div class="message-type-selector">
-                    <label class="type-option active">
-                        <input type="radio" name="messageType" value="text" checked>
-                        <span class="type-icon">📝</span>
-                        <span>نص</span>
-                    </label>
-                    <label class="type-option">
-                        <input type="radio" name="messageType" value="image">
-                        <span class="type-icon">📷</span>
-                        <span>صورة</span>
-                    </label>
-                    <label class="type-option">
-                        <input type="radio" name="messageType" value="video">
-                        <span class="type-icon">🎥</span>
-                        <span>فيديو</span>
-                    </label>
-                </div>
-
-                <!-- Identity Selection -->
-                <div class="identity-selector">
-                    <label>هويتك:</label>
-                    <div class="identity-options">
-                        <label class="identity-option">
-                            <input type="radio" name="identity" value="anonymous" checked>
-                            <span class="identity-icon">🔐</span>
-                            <span>مجهول</span>
-                        </label>
-                        <label class="identity-option">
-                            <input type="radio" name="identity" value="alias">
-                            <span class="identity-icon">🎭</span>
-                            <span>اسم مستعار</span>
-                        </label>
-                        <label class="identity-option">
-                            <input type="radio" name="identity" value="reveal">
-                            <span class="identity-icon">👤</span>
-                            <span>إظهار اسمي</span>
-                        </label>
-                    </div>
-                    <input type="text" class="alias-input hidden" id="aliasInput" placeholder="ادخل اسمك المستعار...">
-                </div>
-
-                <!-- Self-destruct Options -->
-                <div class="destruct-options">
-                    <label>نوع الرسالة:</label>
-                    <select id="destructOption">
-                        <option value="normal">عادية</option>
-                        <option value="one-view">👁️ مشاهدة واحدة فقط</option>
-                        <option value="10sec">⏱️ تختفي بعد 10 ثوانٍ</option>
-                        <option value="30sec">⏱️ تختفي بعد 30 ثانية</option>
-                        <option value="1hour">⏱️ تختفي بعد ساعة</option>
-                        <option value="24hours">📅 تختفي بعد 24 ساعة</option>
-                    </select>
-                </div>
-
-                <!-- Message Content -->
-                <div class="form-group">
-                    <textarea id="messageContent" placeholder="اكتب رسالتك هنا... 🤫" rows="4" required></textarea>
-                    <div class="media-upload hidden" id="mediaUpload">
-                        <input type="file" id="mediaFile" accept="image/*,video/*">
-                        <label for="mediaFile" class="upload-btn">
-                            <span>📎 ارفق ملف</span>
-                        </label>
-                        <div class="preview" id="mediaPreview"></div>
-                    </div>
-                </div>
-
-                <!-- Safety Notice -->
-                <div class="safety-notice">
-                    <span>🛡️</span>
-                    <p>رسائلك يتم فحصها بواسطة AI لضمان سلامة المنصة. نحترم خصوصيتك.</p>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block">
-                    <span>🔐 إرسال رسالة سرية</span>
-                </button>
-            </form>
         </div>
     </div>
 
