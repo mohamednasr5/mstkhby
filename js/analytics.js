@@ -109,8 +109,7 @@ class AnalyticsService {
         const identityDistribution = {
             anonymous: messages.filter(m => m.identity === 'anonymous').length,
             alias: messages.filter(m => m.identity === 'alias').length,
-            known: messages.filter(m => m.identity === 'known').length,
-            reveal_later: messages.filter(m => m.identity === 'reveal_later').length
+            reveal: messages.filter(m => m.identity === 'reveal').length
         };
 
         // Reactions breakdown

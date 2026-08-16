@@ -6,17 +6,14 @@
   <script>
     // GitHub Pages لا يدعم أي رواتينج من جانب السيرفر — أي مسار غير
     // موجود كملف فعلي (زي /mohamednasrofficial) بيوصل هنا تلقائياً.
-    // بنمرّر اسم المستخدم عن طريق query param بدل sessionStorage
-    // (أكثر ثباتاً مع متصفحات السوشيال ميديا الداخلية اللي أحياناً
-    // بتقيّد الوصول لـ sessionStorage بين عمليات التنقل).
-    // index.html بيقرأ الـ param ده، يرجّع الرابط النظيف تاني في
-    // شريط العنوان، ويفتح صفحة إرسال الرسالة لصاحب اليوزرنيم مباشرة.
-    var username = location.pathname.replace(/^\//, '').split('/')[0];
-    if (username && username !== 'index.html') {
-      location.replace('/?__mstkhby_user=' + encodeURIComponent(username));
-    } else {
-      location.replace('/');
+    // بنحفظ المسار في sessionStorage ونرجّع المستخدم لـ index.html،
+    // واللي بدوره بيرجّع الرابط النظيف تاني في شريط العنوان ويفتح
+    // صفحة إرسال الرسالة لصاحب اليوزرنيم ده مباشرة.
+    var path = location.pathname.replace(/^\//, '') + location.search;
+    if (path && path !== 'index.html') {
+      sessionStorage.setItem('mstkhby_redirect_path', path);
     }
+    location.replace('/');
   </script>
 </head>
 <body>

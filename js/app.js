@@ -118,6 +118,10 @@ class MstkhbyApp {
         window.authService.subscribe((user) => {
             this.currentUser = user;
             this.updateUIForAuthState(user);
+            // Re-check the "reveal identity" login gate live, in case the
+            // user is standing on a public profile page and logs in without
+            // reloading.
+            window.uiManager?.refreshIdentityGate();
         });
     }
 
@@ -239,16 +243,19 @@ class MstkhbyApp {
 
     /**
      * If 404.html bounced us here from a clean URL like
-     * mstkhby.com/mohamednasrofficial, the original username arrives
-     * as a query param (?__mstkhby_user=...). Put the clean path back
-     * in the address bar (so the user still sees the nice link, not
-     * index.html or a ?param) and open that user's public
-     * send-message page directly.
+     * mstkhby.com/mohamednasrofficial, sessionStorage has the original
+     * path. Put that path back in the address bar (so the user still
+     * sees the nice clean link, not index.html or a #) and open that
+     * user's public send-message page directly.
      */
     handleCleanUrlRedirect() {
-        const params = new URLSearchParams(window.location.search);
-        const username = params.get('__mstkhby_user');
-        if (!username) return;
+        const rawPath = sessionStorage.getItem('mstkhby_redirect_path');
+        if (!rawPath) return;
+        sessionStorage.removeItem('mstkhby_redirect_path');
+
+        // Strip any query string, keep just the username segment.
+        const username = rawPath.split('?')[0].split('/')[0];
+        if (!username || username === 'index.html') return;
 
         // Restore the clean URL in the address bar without reloading.
         history.replaceState(null, '', '/' + username);
@@ -372,14 +379,12 @@ class MstkhbyApp {
             );
 
             if (result.messages.length === 0) {
-                const currentUserData = await window.authService?.getCurrentUserData();
-                const shareUsername = currentUserData?.username || '';
                 messagesList.innerHTML = `
                     <div style="text-align: center; padding: 60px 20px;">
                         <div style="font-size: 4rem; margin-bottom: 16px;">📭</div>
                         <h3 style="margin-bottom: 8px;">لا توجد رسائل</h3>
                         <p style="color: var(--text-secondary);">شارك رابطك لاستقبال رسائل سرية!</p>
-                        <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/' + '${shareUsername}')">
+                        <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/' + '${this.currentUser?.displayName}')">
                             نسخ الرابط
                         </button>
                     </div>
@@ -422,8 +427,7 @@ class MstkhbyApp {
         const identityBadge = {
             anonymous: `<span class="sender-badge badge-anonymous">🤫 مجهول</span>${senderBadges}`,
             alias: `<span class="sender-badge badge-anonymous">🎭 ${this.escapeHtml(message.alias || 'مستعار')}</span>${senderBadges}`,
-            known: `<span class="sender-badge badge-reveal">👤 ${this.escapeHtml(message.senderDisplayName || 'معروف')}</span>${senderBadges}`,
-            reveal_later: `<span class="sender-badge badge-anonymous">${message.identityRevealed ? '👤 ' + this.escapeHtml(message.senderDisplayName || 'معروف') : '👁️ مجهول (قابل للكشف)'}</span>${senderBadges}`
+            reveal: `<span class="sender-badge badge-reveal">👤 معروف</span>${senderBadges}`
         };
 
         const destructIndicator = {
@@ -494,19 +498,11 @@ class MstkhbyApp {
                     ` : ''}
 
                     <div class="detail-sender">
-                        <div class="detail-avatar">${
-                            message.identity === 'known' ? '👤' :
-                            message.identity === 'alias' ? '🎭' :
-                            message.identity === 'reveal_later' ? (message.identityRevealed ? '👤' : '👁️') :
-                            '🤫'
-                        }</div>
+                        <div class="detail-avatar">${message.identity === 'anonymous' ? '🤫' : '🎭'}</div>
                         <div class="detail-sender-info">
-                            <h3>${
-                                message.identity === 'known' ? this.escapeHtml(message.senderDisplayName || 'معروف') :
-                                message.identity === 'reveal_later' && message.identityRevealed ? this.escapeHtml(message.senderDisplayName || 'معروف') :
-                                message.identity === 'alias' ? this.escapeHtml(message.alias || 'شخص مستعار') :
-                                'شخص مجهول'
-                            }${window.UserBadges?.render({
+                            <h3>${message.identity === 'reveal' && message.identityRevealed ? this.escapeHtml(message.senderDisplayName || 'معروف') : 
+                                message.identity === 'anonymous' ? 'شخص مجهول' :
+                                message.identity === 'alias' ? this.escapeHtml(message.alias || 'شخص مستعار') : 'شخص مجهول'}${window.UserBadges?.render({
                                     plan: message.senderPlan,
                                     isVerified: message.senderIsVerified,
                                     verificationTier: message.senderVerificationTier,
@@ -545,7 +541,7 @@ class MstkhbyApp {
                             <button class="btn btn-outline btn-sm" onclick="window.app.shareMessage('${messageId}')">
                                 📤 مشاركة
                             </button>
-                            ${message.identity === 'reveal_later' && !message.identityRevealed ? `
+                            ${message.identity === 'reveal' && !message.identityRevealed ? `
                                 <button class="btn btn-outline btn-sm" onclick="window.app.revealIdentity('${messageId}')">
                                     👤 كشف الهوية
                                 </button>
@@ -1116,6 +1112,7 @@ class MstkhbyApp {
         if (!publicPage) {
             publicPage = this.createPublicProfilePage();
             document.body.appendChild(publicPage);
+            window.uiManager?.bindSendMessageForm();
         }
 
         this.hideDynamicPages();
@@ -1123,15 +1120,12 @@ class MstkhbyApp {
         publicPage.classList.add('page-enter');
 
         await this.loadPublicProfileData(username);
-
-        // Auto-open send message modal
-        setTimeout(() => {
-            window.uiManager?.openSendMessageModal({ username });
-        }, 500);
     }
 
     /**
-     * Create public profile page
+     * Create public profile page. This used to just show a button that
+     * popped a floating "send message" modal on top of it; the send form
+     * now lives inline as part of this same standalone page.
      */
     createPublicProfilePage() {
         const page = document.createElement('div');
@@ -1145,10 +1139,80 @@ class MstkhbyApp {
                     <p style="opacity: 0.9; margin-top: 8px;">أرسل لي رسالة سرية 🤫</p>
                 </div>
 
-                <div style="text-align: center; padding: 40px 20px;">
-                    <button class="btn btn-primary btn-lg" onclick="window.uiManager?.openSendMessageModal()">
-                        🔐 أرسل رسالة سرية
-                    </button>
+                <div class="send-message-page">
+                    <form class="send-form" id="sendMessageForm">
+                        <div class="message-type-selector">
+                            <label class="type-option active">
+                                <input type="radio" name="messageType" value="text" checked>
+                                <span class="type-icon">📝</span>
+                                <span>نص</span>
+                            </label>
+                            <label class="type-option">
+                                <input type="radio" name="messageType" value="image">
+                                <span class="type-icon">📷</span>
+                                <span>صورة</span>
+                            </label>
+                            <label class="type-option">
+                                <input type="radio" name="messageType" value="video">
+                                <span class="type-icon">🎥</span>
+                                <span>فيديو</span>
+                            </label>
+                        </div>
+
+                        <div class="identity-selector">
+                            <label>هويتك:</label>
+                            <div class="identity-options">
+                                <label class="identity-option">
+                                    <input type="radio" name="identity" value="anonymous" checked>
+                                    <span class="identity-icon">🔐</span>
+                                    <span>مجهول</span>
+                                </label>
+                                <label class="identity-option">
+                                    <input type="radio" name="identity" value="alias">
+                                    <span class="identity-icon">🎭</span>
+                                    <span>اسم مستعار</span>
+                                </label>
+                                <label class="identity-option">
+                                    <input type="radio" name="identity" value="reveal">
+                                    <span class="identity-icon">👤</span>
+                                    <span>إظهار اسمي</span>
+                                </label>
+                            </div>
+                            <input type="text" class="alias-input hidden" id="aliasInput" placeholder="ادخل اسمك المستعار...">
+                        </div>
+
+                        <div class="destruct-options">
+                            <label>نوع الرسالة:</label>
+                            <select id="destructOption">
+                                <option value="normal">عادية</option>
+                                <option value="one-view">👁️ مشاهدة واحدة فقط</option>
+                                <option value="10sec">⏱️ تختفي بعد 10 ثوانٍ</option>
+                                <option value="30sec">⏱️ تختفي بعد 30 ثانية</option>
+                                <option value="1hour">⏱️ تختفي بعد ساعة</option>
+                                <option value="24hours">📅 تختفي بعد 24 ساعة</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <textarea id="messageContent" placeholder="اكتب رسالتك هنا... 🤫" rows="4" required></textarea>
+                            <div class="media-upload hidden" id="mediaUpload">
+                                <input type="file" id="mediaFile" accept="image/*,video/*">
+                                <label for="mediaFile" class="upload-btn">
+                                    <span>📎 ارفق ملف</span>
+                                </label>
+                                <div class="preview" id="mediaPreview"></div>
+                            </div>
+                        </div>
+
+                        <div class="safety-notice">
+                            <span>🛡️</span>
+                            <p>رسائلك يتم فحصها بواسطة AI لضمان سلامة المنصة. نحترم خصوصيتك.</p>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <span>🔐 إرسال رسالة سرية</span>
+                        </button>
+                    </form>
                 </div>
             </div>
         `;
@@ -1174,8 +1238,22 @@ class MstkhbyApp {
                     document.getElementById('publicProfileAvatar').textContent = 
                         userData.displayName?.[0]?.toUpperCase() || '👤';
                 }
+
+                // Wire the real recipient uid into the send form. This is
+                // the fix for the lost-message bug: recipientId now comes
+                // straight from the resolved profile record instead of a
+                // URL query param the app never populates.
+                window.uiManager?.setActiveRecipient({
+                    id: userData.id,
+                    username,
+                    displayName: userData.displayName
+                });
             } else {
                 document.getElementById('publicProfileName').textContent = 'المستخدم غير موجود';
+                window.uiManager?.setActiveRecipient(null);
+                document.getElementById('sendMessageForm')
+                    ?.querySelector('button[type="submit"]')
+                    ?.setAttribute('disabled', 'disabled');
             }
         } catch (error) {
             console.error('Error loading public profile:', error);
