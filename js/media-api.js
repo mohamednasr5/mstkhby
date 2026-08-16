@@ -23,19 +23,24 @@ class MediaApiClient {
      * @returns {Promise<{url: string, key: string, type: string, size: number}>}
      */
     async upload(file, options = {}) {
+        // Anonymous senders attaching a photo/video to a secret message must
+        // be able to upload without an account — that's the whole point of
+        // this app. Only send an Authorization header if the visitor
+        // happens to be logged in; the Worker enforces auth server-side
+        // only for non-message uploads (avatars, etc.), so this stays safe.
         const idToken = await window.MstkhbyFirebase?.helpers.getIdToken();
-        if (!idToken) {
-            throw new Error('يجب تسجيل الدخول لرفع الملفات');
-        }
 
         const formData = new FormData();
         formData.append('file', file, file.name || 'upload');
         if (options.messageId) formData.append('messageId', options.messageId);
         if (options.category) formData.append('category', options.category);
 
+        const headers = {};
+        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+
         const response = await fetch(`${this.apiBase}/api/media/upload`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${idToken}` },
+            headers,
             body: formData
         });
 
