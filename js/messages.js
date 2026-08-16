@@ -259,8 +259,17 @@ class MessagesService {
 
             const message = { id: messageId, ...snap.val() };
 
-            // Verify user owns this message
-            if (message.recipientId !== userId) {
+            // Verify the caller is actually party to this message. This
+            // used to only accept the recipient (message.recipientId ===
+            // userId), which matched the original "open an inbox message"
+            // use case but broke reply-to-a-reply: replies are nested
+            // under the SAME top-level messageId, so when the original
+            // SENDER replies back to a reply they received, they are
+            // message.senderId, not message.recipientId, and got wrongly
+            // rejected here even though the DB read rule (sender OR
+            // recipient) had already allowed the read. Match that same
+            // sender-or-recipient rule here instead of recipient-only.
+            if (message.recipientId !== userId && message.senderId !== userId) {
                 throw new Error('غير مصرح بعرض هذه الرسالة');
             }
 
@@ -415,14 +424,24 @@ class MessagesService {
      */
     async replyToMessage(messageId, replyData) {
         try {
-            const originalMessage = await this.getMessage(messageId, replyData.recipientId);
+            const currentUserId = replyData.recipientId;
+            const originalMessage = await this.getMessage(messageId, currentUserId);
+
+            // Reply goes to whichever party in the original message is NOT
+            // the current user — not always originalMessage.message.senderId.
+            // That hardcoded assumption broke replying back to a reply: if
+            // the current user IS the original senderId (replying to a
+            // reply they received), it used to set recipientId back to
+            // themselves instead of to the other party.
+            const om = originalMessage.message;
+            const replyTarget = om.recipientId === currentUserId ? om.senderId : om.recipientId;
 
             const replyRef = this.database.ref(`messages/${messageId}/replies`).push();
             const replyDoc = {
                 id: replyRef.key,
                 originalMessageId: messageId,
                 senderId: replyData.senderId || null,
-                recipientId: originalMessage.message.senderId,
+                recipientId: replyTarget,
                 content: this.sanitizeContent(replyData.content),
                 identity: replyData.identity || 'anonymous',
                 alias: replyData.identity === 'alias' ? replyData.alias : null,
