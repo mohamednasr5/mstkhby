@@ -1530,3 +1530,73 @@
     background: rgba(14, 165, 233, 0.06);
     cursor: default;
 }
+
+/* Signup terms agreement checkbox */
+.form-check {
+    margin-top: 4px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--primary, #0ea5e9);
+    cursor: pointer;
+}
+
+.checkbox-label a {
+    color: var(--primary, #0ea5e9);
+    text-decoration: underline;
+}
+
+.btn:disabled,
+.btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Realtime unread-messages badge (navbar) */
+.unread-badge {
+    position: absolute;
+    top: -6px;
+    left: -10px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--accent-red, #ef4444);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--bg-primary, #0f172a);
+    pointer-events: none;
+    transition: transform 0.15s ease;
+}
+
+.unread-badge.hidden {
+    display: none;
+}
+
+@keyframes badgePop {
+    0% { transform: scale(0.6); }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+.unread-badge:not(.hidden) {
+    animation: badgePop 0.25s ease;
+}

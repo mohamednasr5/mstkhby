@@ -245,9 +245,11 @@ class StoryCardsService {
         // Recipient info
         this.drawRecipientInfo(ctx, padding, height * 0.88, messageData.recipientName, template);
 
-        // CTA / QR Code
+        // CTA / QR Code — sized generously so it's actually scannable
+        // once the card is shared/downloaded and viewed at normal size.
         if (options.includeQRCode) {
-            await this.drawQRCode(ctx, width - padding - 100, height - padding - 100, 90, messageData.profileUrl);
+            const qrSize = Math.round(width * 0.16);
+            await this.drawQRCode(ctx, width - padding - qrSize, height - padding - qrSize, qrSize, messageData.profileUrl);
         }
 
         // Watermark
@@ -404,33 +406,91 @@ class StoryCardsService {
     }
 
     /**
-     * Draw QR code placeholder
+     * Draw a real, scannable QR code (using the `qrcode` library — loaded
+     * via CDN as window.QRCode) that encodes the recipient's public
+     * profile link, so scanning it takes people straight to the page
+     * where they can send this person a message.
      */
     async drawQRCode(ctx, x, y, size, url) {
         ctx.save();
 
-        // QR code background
-        ctx.beginPath();
+        // White rounded card behind the QR for contrast/quiet-zone
         this.roundRect(ctx, x, y, size, size, 12);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // QR code pattern (simplified - would use actual QR library)
+        const targetUrl = this.normalizeProfileUrl(url);
+        const qrPadding = size * 0.1;
+        const qrSize = Math.round(size - qrPadding * 2);
+
+        try {
+            const qrImage = await this.renderQRCodeImage(targetUrl, qrSize);
+            ctx.drawImage(qrImage, x + qrPadding, y + qrPadding, qrSize, qrSize);
+        } catch (error) {
+            console.warn('QR code generation failed, falling back to placeholder:', error);
+            this.drawQRCodePlaceholder(ctx, x + qrPadding, y + qrPadding, qrSize);
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Ensure the encoded URL is a full, absolute link (adds https:// if
+     * the caller only passed a bare domain/path like "mstkhby.com/user").
+     */
+    normalizeProfileUrl(url) {
+        if (!url) return window.location.origin;
+        return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    }
+
+    /**
+     * Render a QR code for `text` at `size`px into an offscreen <img>,
+     * using the `qrcode` UMD library (window.QRCode). Resolves with an
+     * Image ready to be drawn onto the card canvas.
+     */
+    renderQRCodeImage(text, size) {
+        return new Promise((resolve, reject) => {
+            if (!window.QRCode || typeof window.QRCode.toDataURL !== 'function') {
+                reject(new Error('QRCode library not loaded'));
+                return;
+            }
+
+            window.QRCode.toDataURL(text, {
+                width: size,
+                margin: 0,
+                color: { dark: '#000000ff', light: '#ffffffff' },
+                errorCorrectionLevel: 'M'
+            }, (err, dataUrl) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = dataUrl;
+            });
+        });
+    }
+
+    /**
+     * Fallback visual (not a real scannable QR) used only if the QR
+     * library failed to load, so the card still renders something.
+     */
+    drawQRCodePlaceholder(ctx, x, y, size) {
+        ctx.save();
         ctx.fillStyle = '#000000';
         const moduleSize = size / 21;
-        
-        // Position detection patterns (corners)
+
         this.drawQRCornerPattern(ctx, x + 3*moduleSize, y + 3*moduleSize, 7*moduleSize);
         this.drawQRCornerPattern(ctx, x + 11*moduleSize, y + 3*moduleSize, 7*moduleSize);
         this.drawQRCornerPattern(ctx, x + 3*moduleSize, y + 11*moduleSize, 7*moduleSize);
 
-        // Data modules (randomized for demo)
         for (let i = 0; i < 200; i++) {
             const px = x + Math.random() * (size - 20) + 10;
             const py = y + Math.random() * (size - 20) + 10;
             ctx.fillRect(px, py, moduleSize - 1, moduleSize - 1);
         }
-
         ctx.restore();
     }
 

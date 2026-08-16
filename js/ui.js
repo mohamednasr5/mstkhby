@@ -144,8 +144,24 @@ class UIManager {
         if (this.elements.signupForm) {
             this.elements.signupForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+                const agreeCheckbox = document.getElementById('signupAgreeTerms');
+                if (agreeCheckbox && !agreeCheckbox.checked) {
+                    this.showToast('لم تكتمل الموافقة', 'يجب الموافقة على شروط الاستخدام وسياسة الخصوصية قبل إنشاء الحساب', 'warning');
+                    return;
+                }
                 this.handleSignup(e.target);
             });
+
+            // Keep the submit button disabled until the user checks the
+            // terms/privacy agreement box (also enforced above on submit
+            // in case the disabled attribute is bypassed).
+            const agreeCheckbox = document.getElementById('signupAgreeTerms');
+            const submitBtn = document.getElementById('signupSubmitBtn');
+            if (agreeCheckbox && submitBtn) {
+                agreeCheckbox.addEventListener('change', () => {
+                    submitBtn.disabled = !agreeCheckbox.checked;
+                });
+            }
         }
 
         // Social sign-in buttons (present in both the login and signup

@@ -116,12 +116,81 @@ class MstkhbyApp {
         if (!window.authService) return;
 
         window.authService.subscribe((user) => {
+            const previousUser = this.currentUser;
             this.currentUser = user;
             this.updateUIForAuthState(user);
             // Re-check the "reveal identity" login gate live, in case the
             // user is standing on a public profile page and logs in without
             // reloading.
             window.uiManager?.refreshIdentityGate();
+
+            // (Re)wire the single global realtime inbox subscription that
+            // powers both the unread-count badge (on every page) and the
+            // live inbox list (on inbox.html). One Firebase listener per
+            // logged-in user, shared everywhere — not one per page.
+            if (previousUser?.uid && previousUser.uid !== user?.uid) {
+                window.messagesService?.unsubscribeFromInbox(previousUser.uid);
+            }
+            if (user) {
+                this.subscribeGlobalInbox(user.uid);
+            } else {
+                this.latestInboxMessages = [];
+                this.updateUnreadBadge(0);
+            }
+        });
+    }
+
+    /**
+     * Single realtime inbox subscription shared by the whole app: fires
+     * instantly (no page refresh) whenever a message arrives, is read, or
+     * is deleted. Updates the unread badge everywhere, and additionally
+     * re-renders the inbox list when the user is on inbox.html.
+     */
+    subscribeGlobalInbox(userId) {
+        window.messagesService?.subscribeToInbox(userId, (messages) => {
+            this.latestInboxMessages = messages;
+
+            const unreadCount = messages.filter(m => !m.isRead).length;
+            this.updateUnreadBadge(unreadCount);
+
+            if (document.body.dataset.page === 'inbox') {
+                this.renderInboxMessages(messages, this.currentInboxFilter || 'all');
+            }
+        });
+    }
+
+    /**
+     * Show/update/hide the unread-messages counter badge in the navbar.
+     * Works on index.html (badge on the "الصندوق الوارد" nav button /
+     * avatar), inbox.html and profile.html (badge on the inbox nav link).
+     */
+    updateUnreadBadge(count) {
+        // Badge anchored to the "الصندوق الوارد" nav link (inbox.html / profile.html)
+        const inboxNavLink = document.querySelector('a[href="inbox.html"].nav-link');
+        // Badge anchored to the navbar login/inbox button (index.html) or avatar
+        const loginBtn = document.getElementById('loginBtn');
+        const avatar = document.querySelector('.nav-avatar');
+
+        const anchors = [inboxNavLink, avatar || loginBtn].filter(Boolean);
+
+        anchors.forEach(anchor => {
+            let badge = anchor.querySelector(':scope > .unread-badge');
+            if (!badge) {
+                // Make sure the anchor can position the badge absolutely
+                if (getComputedStyle(anchor).position === 'static') {
+                    anchor.style.position = 'relative';
+                }
+                badge = document.createElement('span');
+                badge.className = 'unread-badge';
+                anchor.appendChild(badge);
+            }
+
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : String(count);
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         });
     }
 
@@ -317,9 +386,24 @@ class MstkhbyApp {
         const cleanHash = hash.startsWith('/') ? hash.slice(1) : hash;
         const [path, ...params] = cleanHash.split('/');
         
+        // Reserved in-page anchors on the homepage (used by the nav bar
+        // to scroll to a section) — these must NOT fall through to the
+        // "treat as username" branch below, or clicking e.g. #features
+        // triggers a lookup for a user literally named "features" and
+        // shows the "user not found" page instead of scrolling.
+        const homeSectionAnchors = ['home', 'features', 'how-it-works', 'pricing'];
+
         switch (path) {
             case '':
                 this.showHomePage();
+                break;
+
+            case 'home':
+            case 'features':
+            case 'how-it-works':
+            case 'pricing':
+                this.showHomePage();
+                document.getElementById(path)?.scrollIntoView({ behavior: 'smooth' });
                 break;
 
             // Backward-compat: redirect any old #/inbox, #/profile,
@@ -335,7 +419,7 @@ class MstkhbyApp {
 
             default:
                 // Check if it's a username (public profile)
-                if (params.length === 0 && path.length > 2) {
+                if (params.length === 0 && path.length > 2 && !homeSectionAnchors.includes(path)) {
                     await this.showPublicProfilePage(path);
                 } else {
                     this.showNotFoundPage();
@@ -383,19 +467,70 @@ class MstkhbyApp {
             return;
         }
 
+        this.currentInboxFilter = 'all';
+
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.loadInboxMessages(btn.dataset.filter);
+                this.currentInboxFilter = btn.dataset.filter;
+                this.renderInboxMessages(this.latestInboxMessages || [], this.currentInboxFilter);
             });
         });
 
-        await this.loadInboxMessages();
+        // The global realtime subscription (started in setupAuthListener)
+        // already pushes live updates here via subscribeGlobalInbox — no
+        // extra listener needed. If it already has data (e.g. user landed
+        // on inbox.html directly after auth resolved), render it now
+        // instead of waiting for the next Firebase event.
+        if (this.latestInboxMessages) {
+            this.renderInboxMessages(this.latestInboxMessages, this.currentInboxFilter);
+        }
     }
 
     /**
-     * Load inbox messages
+     * Render the inbox list from an already-fetched (live) messages array,
+     * applying the active client-side filter. No network round-trip —
+     * called every time the realtime subscription fires or the filter
+     * changes.
+     */
+    renderInboxMessages(messages, filter = 'all') {
+        const messagesList = document.getElementById('messagesList');
+        if (!messagesList) return;
+
+        let filtered = messages;
+        if (filter === 'unread') {
+            filtered = messages.filter(m => !m.isRead);
+        } else if (filter === 'media') {
+            filtered = messages.filter(m => m.messageType === 'image' || m.messageType === 'video');
+        }
+
+        if (filtered.length === 0) {
+            messagesList.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 16px;">📭</div>
+                    <h3 style="margin-bottom: 8px;">لا توجد رسائل</h3>
+                    <p style="color: var(--text-secondary);">شارك رابطك لاستقبال رسائل سرية!</p>
+                    <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/' + '${this.currentUser?.displayName}')">
+                        نسخ الرابط
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        messagesList.innerHTML = filtered.map(msg => this.renderMessageItem(msg)).join('');
+
+        // Bind click events
+        messagesList.querySelectorAll('.message-item').forEach(item => {
+            item.addEventListener('click', () => this.openMessage(item.dataset.messageId));
+        });
+    }
+
+    /**
+     * Load inbox messages (one-shot fallback — kept for any code path
+     * that still calls it directly, e.g. the "retry" button on error).
+     * The inbox page itself now relies on the live subscription above.
      */
     async loadInboxMessages(filter = 'all') {
         const messagesList = document.getElementById('messagesList');
@@ -414,26 +549,8 @@ class MstkhbyApp {
                 { filter }
             );
 
-            if (result.messages.length === 0) {
-                messagesList.innerHTML = `
-                    <div style="text-align: center; padding: 60px 20px;">
-                        <div style="font-size: 4rem; margin-bottom: 16px;">📭</div>
-                        <h3 style="margin-bottom: 8px;">لا توجد رسائل</h3>
-                        <p style="color: var(--text-secondary);">شارك رابطك لاستقبال رسائل سرية!</p>
-                        <button class="btn btn-primary mt-md" onclick="window.uiManager?.copyToClipboard(window.location.origin + '/' + '${this.currentUser?.displayName}')">
-                            نسخ الرابط
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-
-            messagesList.innerHTML = result.messages.map(msg => this.renderMessageItem(msg)).join('');
-
-            // Bind click events
-            messagesList.querySelectorAll('.message-item').forEach(item => {
-                item.addEventListener('click', () => this.openMessage(item.dataset.messageId));
-            });
+            this.latestInboxMessages = result.messages;
+            this.renderInboxMessages(result.messages, filter);
 
         } catch (error) {
             console.error('Error loading messages:', error);
@@ -980,15 +1097,46 @@ class MstkhbyApp {
                             روابط إضافية متاحة لخطط البريميوم
                         </div>
                     </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-header">
+                            <span>🎴 Story Card بعبارتك</span>
+                        </div>
+                        <div style="padding: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">
+                                اكتب أي عبارة تحبها، وهنولّدلك بطاقة جاهزة للمشاركة عليها العبارة + QR Code حقيقي يوصل أي حد يمسحه لرابطك العام مباشرة عشان يبعتلك رسالة.
+                            </p>
+                            <textarea id="storyCardText" rows="3" maxlength="180"
+                                placeholder="مثال: ابعتلي أي حاجة في بالك... سري تماماً 🤫"
+                                style="width: 100%; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light); resize: vertical; font-family: inherit;"></textarea>
+                            <button class="btn btn-primary mt-md" id="generateStoryCardBtn">🎨 إنشاء Story Card</button>
+                        </div>
+                    </div>
                 `;
 
                 if (canChangeUsername) {
                     document.getElementById('changeUsernameBtn')?.addEventListener('click', () => this.handleUsernameChange());
                 }
+
+                document.getElementById('generateStoryCardBtn')?.addEventListener('click', () => {
+                    const text = document.getElementById('storyCardText')?.value.trim();
+                    if (!text) {
+                        window.uiManager?.showToast('اكتب عبارتك الأول', 'أدخل نص البطاقة قبل الإنشاء', 'warning');
+                        return;
+                    }
+                    window.storyCardsService?.showPreview({
+                        content: text,
+                        identity: 'anonymous',
+                        recipientName: userData?.username || '',
+                        profileUrl: profileLink
+                    }, {
+                        includeQRCode: true,
+                        showSenderType: false
+                    });
+                });
+
                 break;
             }
-
-            case 'settings':
                 contentEl.innerHTML = `
                     <div class="settings-section">
                         <div class="settings-section-header">

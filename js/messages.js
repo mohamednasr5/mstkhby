@@ -27,7 +27,13 @@
 class MessagesService {
     constructor() {
         this.database = window.MstkhbyFirebase?.database;
-        this.media = window.mediaApi;
+        // NOTE: media-api.js may load after this file, so window.mediaApi
+        // can still be undefined at construction time. Use a lazy getter
+        // instead of capturing the (possibly undefined) reference now.
+        Object.defineProperty(this, 'media', {
+            get() { return window.mediaApi; },
+            configurable: true
+        });
         this.auth = window.MstkhbyFirebase?.auth;
 
         // Real-time listeners
@@ -219,6 +225,11 @@ class MessagesService {
      * Listen to real-time inbox updates
      */
     subscribeToInbox(userId, callback) {
+        // Avoid leaking a duplicate Firebase listener if something already
+        // subscribed for this user (e.g. re-subscribing after a hot auth
+        // state change) — always tear down the old one first.
+        this.unsubscribeFromInbox(userId);
+
         const indexRef = this.database.ref(`messagesByRecipient/${userId}`).limitToLast(100);
 
         const handler = async (snapshot) => {

@@ -940,12 +940,19 @@
                     <input type="password" id="signupPassword" placeholder="••••••••" required>
                     <div class="password-strength" id="passwordStrength"></div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">إنشاء حساب</button>
-                <p class="terms-agreement">
-                    بإنشاء حساب، أنت توافق على 
-                    <a href="pages/terms.html">شروط الاستخدام</a> و 
-                    <a href="pages/privacy.html">سياسة الخصوصية</a>
-                </p>
+                <div class="form-group form-check">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="signupAgreeTerms" required>
+                        <span>
+                            لقد قرأت ووافقت على
+                            <a href="pages/terms.html" target="_blank" rel="noopener">شروط الاستخدام</a>
+                            و
+                            <a href="pages/privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>
+                            وأتحمل المسؤولية الكاملة عن استخدامي للمنصة
+                        </span>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="signupSubmitBtn" disabled>إنشاء حساب</button>
             </form>
         </div>
     </div>
@@ -979,12 +986,14 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/ui.js"></script>
-    <script src="js/messages.js"></script>
     <script src="js/media-api.js"></script>
+    <script src="js/messages.js"></script>
     <script src="js/storage.js"></script>
     
     <!-- Premium Features Scripts -->
     <script src="js/verification.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
     <script src="js/story-cards.js"></script>
     <script src="js/analytics.js"></script>
     <script src="js/i18n.js"></script>
