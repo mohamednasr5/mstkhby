@@ -553,6 +553,15 @@ class AuthService {
     }
 
     // Get user by username (for public profiles)
+    //
+    // IMPORTANT: this must read each public field directly (not the parent
+    // `profile`/`entitlements` node in one call). RTDB per-field `.read: true`
+    // overrides (see database.rules.json) only grant access when that exact
+    // child path is requested — they do NOT open up a read of the parent
+    // node. Reading the parent as a logged-out visitor was being rejected
+    // outright (auth != null required on `profile`/`entitlements`), so
+    // every anonymous visit to someone's link returned null and looked like
+    // "the page doesn't work."
     async getUserByUsername(username) {
         try {
             const normalizedUsername = username.toLowerCase();
@@ -563,16 +572,31 @@ class AuthService {
             }
 
             const uid = usernameSnap.val().uid;
-            const [profileSnap, entitlementsSnap] = await Promise.all([
-                this.database.ref(`users/${uid}/profile`).once('value'),
-                // Only the public-safe entitlement fields (plan/isVerified/etc.)
-                // are readable by a visitor who isn't this account's owner —
-                // see the per-field .read overrides in database.rules.json.
-                this.database.ref(`users/${uid}/entitlements`).once('value')
+
+            const publicProfileFields = ['displayName', 'username', 'photoURL', 'profileUrl'];
+            const publicEntitlementFields = ['plan', 'isVerified', 'verificationTier', 'badgeIcon', 'badgeColor'];
+
+            const [profileSnaps, entitlementSnaps] = await Promise.all([
+                Promise.all(publicProfileFields.map(field =>
+                    this.database.ref(`users/${uid}/profile/${field}`).once('value')
+                )),
+                Promise.all(publicEntitlementFields.map(field =>
+                    this.database.ref(`users/${uid}/entitlements/${field}`).once('value')
+                ))
             ]);
 
-            if (!profileSnap.exists()) return null;
-            return { id: uid, ...profileSnap.val(), ...(entitlementsSnap.val() || {}) };
+            const profile = {};
+            publicProfileFields.forEach((field, i) => {
+                if (profileSnaps[i].exists()) profile[field] = profileSnaps[i].val();
+            });
+
+            const entitlements = {};
+            publicEntitlementFields.forEach((field, i) => {
+                if (entitlementSnaps[i].exists()) entitlements[field] = entitlementSnaps[i].val();
+            });
+
+            if (!profile.displayName) return null;
+            return { id: uid, ...profile, ...entitlements };
         } catch (error) {
             console.error('Error getting user by username:', error);
             return null;
