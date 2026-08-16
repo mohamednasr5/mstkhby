@@ -635,16 +635,21 @@ const MstkhbyAPI = {
     // ==================== MEDIA ENDPOINTS ====================
 
     async handleMedia(request, path, env) {
+        // Message attachments (image/video sent inside a secret message) must
+        // work for anonymous senders — that's the whole point of this app.
+        // Requiring a login here silently broke every media message from a
+        // logged-out sender. Everything else (avatars, etc.) still requires
+        // auth, enforced inside uploadMedia() once we know the category.
         const user = await this.authenticateUser(request);
-        if (!user) {
-            return this.jsonResponse({ error: 'Unauthorized' }, 401);
-        }
 
         switch (true) {
             case path === '/api/media/upload' && request.method === 'POST':
                 return await this.uploadMedia(request, user, env);
             
             case path.match(/^\/api\/media\/(.+)$/) && request.method === 'DELETE':
+                if (!user) {
+                    return this.jsonResponse({ error: 'Unauthorized' }, 401);
+                }
                 const mediaKey = path.replace('/api/media/', '');
                 return await this.deleteMedia(mediaKey, user, env);
             
@@ -663,6 +668,14 @@ const MstkhbyAPI = {
 
         if (!file) {
             return this.jsonResponse({ error: 'No file provided' }, 400);
+        }
+
+        // Anonymous uploads are only allowed for message attachments
+        // (namespaced by messageId, not by a user). Anything else (avatars,
+        // share-cards, etc.) still needs a real logged-in user, since those
+        // are namespaced by user.id below.
+        if (!messageId && !user) {
+            return this.jsonResponse({ error: 'Unauthorized' }, 401);
         }
 
         // Validate file
