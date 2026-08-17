@@ -802,31 +802,15 @@ var MstkhbyAPI = {
     // these Worker endpoints with their normal Firebase ID token.
     return ADMIN_EMAILS.includes((user.email || "").toLowerCase());
   },
-  // Verifies a real Firebase Auth ID token server-side via the
-  // Identity Toolkit REST API (no crypto library needed in Workers).
-  // Docs: https://cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/lookup
+  // Verifies a real Firebase Auth ID token entirely server-side by
+  // checking its signature locally (see firebase-admin.js) — no
+  // dependency on FIREBASE_API_KEY, so it isn't affected by that
+  // key's HTTP-referrer restrictions (it's a public web key normally
+  // locked to the site's own domains, which blocks server calls).
   async verifyToken(idToken) {
     try {
-      if (!idToken || !this.env?.FIREBASE_API_KEY) return null;
-      const resp = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${this.env.FIREBASE_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken })
-        }
-      );
-      if (!resp.ok) return null;
-      const data = await resp.json();
-      const account = data.users?.[0];
-      if (!account) return null;
-      return {
-        id: account.localId,
-        email: account.email,
-        emailVerified: account.emailVerified,
-        displayName: account.displayName,
-        claims: account.customAttributes ? JSON.parse(account.customAttributes) : {}
-      };
+      if (!idToken) return null;
+      return await FirebaseAdmin.verifyIdToken(this.env, idToken);
     } catch (error) {
       console.error("Token verification failed:", error);
       return null;
