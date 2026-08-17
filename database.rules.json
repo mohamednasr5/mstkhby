@@ -97,9 +97,15 @@
     "reports": {
       ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
       ".write": "auth == null || (auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com'))",
+      ".indexOn": ["status"],
       "$reportId": {
         ".write": true
       }
+    },
+
+    "botActivity": {
+      ".read": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')",
+      ".write": "auth != null && (auth.token.email === 'elfannanm@gmail.com' || auth.token.email === 'mohamednasrofficial@gmail.com')"
     },
 
     "blocks": {

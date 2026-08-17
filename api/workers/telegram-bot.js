@@ -1,4 +1,5 @@
 // telegram-bot.js
+import FirebaseAdmin from './firebase-admin.js';
 // ============================================================
 // Mstkhby — Telegram Admin Bot (Cloudflare Worker module)
 // ============================================================
@@ -214,9 +215,12 @@ const TelegramBot = {
         await this.sendMessage(env, chatId,
           `👋 أهلاً بك في بوت إدارة <b>مستخبي</b>.\n\n` +
           `<b>الأوامر المتاحة:</b>\n` +
-          `/stats — إحصائيات المنصة\n` +
+          `/stats — إحصائيات المنصة (مباشرة من قاعدة البيانات)\n` +
           `/reports — عرض البلاغات المعلقة\n` +
+          `/verifications — طلبات التوثيق المعلقة\n` +
           `/ban [user_id] [السبب] — حظر مستخدم فوراً\n` +
+          `/unban [user_id] — إلغاء حظر مستخدم\n` +
+          `/whoami — عرض معرف هذه المحادثة\n` +
           `/help — عرض هذه القائمة`
         );
         break;
@@ -226,35 +230,70 @@ const TelegramBot = {
           `<b>أوامر البوت:</b>\n` +
           `/stats — إحصائيات عامة\n` +
           `/reports — عرض البلاغات المعلقة\n` +
-          `/ban [user_id] [السبب] — حظر مستخدم فوراً`
+          `/verifications — طلبات التوثيق المعلقة\n` +
+          `/ban [user_id] [السبب] — حظر مستخدم فوراً\n` +
+          `/unban [user_id] — إلغاء حظر مستخدم\n` +
+          `/whoami — عرض معرف هذه المحادثة`
         );
         break;
 
+      case '/whoami':
+        await this.sendMessage(env, chatId, `معرف هذه المحادثة: <code>${chatId}</code>`);
+        break;
+
       case '/stats': {
-        const statsResp = await api.adminGetStats();
-        const { stats } = await statsResp.json();
-        await this.sendMessage(env, chatId,
-          `📊 <b>إحصائيات المنصة</b>\n\n` +
-          `👥 إجمالي المستخدمين: ${stats.totalUsers.toLocaleString('ar')}\n` +
-          `🟢 نشط اليوم: ${stats.activeUsersToday.toLocaleString('ar')}\n` +
-          `✉️ إجمالي الرسائل: ${stats.totalMessages.toLocaleString('ar')}\n` +
-          `📩 رسائل اليوم: ${stats.messagesToday.toLocaleString('ar')}\n` +
-          `💎 مشتركو البريميوم: ${stats.premiumUsers.toLocaleString('ar')}\n` +
-          `🚩 بلاغات معلقة: ${stats.reportsPending}\n` +
-          `📈 معدل النمو: ${stats.growthRate}`
-        );
+        try {
+          const statsResp = await api.adminGetStats();
+          const { stats } = await statsResp.json();
+          await this.sendMessage(env, chatId,
+            `📊 <b>إحصائيات المنصة</b> <i>(مباشرة الآن)</i>\n\n` +
+            `👥 إجمالي المستخدمين: ${stats.totalUsers.toLocaleString('ar')}\n` +
+            `✉️ إجمالي الرسائل: ${stats.totalMessages.toLocaleString('ar')}\n` +
+            `🚩 إجمالي البلاغات: ${stats.totalReports.toLocaleString('ar')} (معلقة: ${stats.reportsPending})\n` +
+            `✔️ طلبات توثيق معلقة: ${stats.verificationsPending}`
+          );
+        } catch (err) {
+          await this.sendMessage(env, chatId, `❌ تعذر جلب الإحصائيات: ${this.esc(err.message)}`);
+        }
         break;
       }
 
       case '/reports': {
-        const reportsResp = await api.adminGetReports({ url: 'https://worker.internal/?status=pending' });
-        const { reports } = await reportsResp.json();
-        if (!reports.length) {
-          await this.sendMessage(env, chatId, '✅ لا توجد بلاغات معلقة حالياً.');
-          break;
+        try {
+          const reportsResp = await api.adminGetReports({ url: 'https://worker.internal/?status=pending&limit=10' });
+          const { reports } = await reportsResp.json();
+          if (!reports.length) {
+            await this.sendMessage(env, chatId, '✅ لا توجد بلاغات معلقة حالياً.');
+            break;
+          }
+          for (const r of reports) {
+            await this.notifyReport(env, r);
+          }
+        } catch (err) {
+          await this.sendMessage(env, chatId, `❌ تعذر جلب البلاغات: ${this.esc(err.message)}`);
         }
-        for (const r of reports.slice(0, 10)) {
-          await this.notifyReport(env, r);
+        break;
+      }
+
+      case '/verifications': {
+        try {
+          const pending = await FirebaseAdmin.listWhere(env, '/verifications', 'status', 'pending', 10);
+          if (!pending.length) {
+            await this.sendMessage(env, chatId, '✅ لا توجد طلبات توثيق معلقة حالياً.');
+            break;
+          }
+          for (const v of pending) {
+            await this.sendMessage(env, chatId,
+              `✔️ <b>طلب توثيق</b>\n` +
+              `المستخدم: <code>${this.esc(v.userId || v.id)}</code>\n` +
+              `الفئة: ${this.esc(v.tier || 'غير محدد')}\n` +
+              `الاسم: ${this.esc(v.data?.fullName || '—')}\n` +
+              `افتح لوحة التحكم لاتخاذ قرار.`,
+              { reply_markup: { inline_keyboard: [[{ text: '🖥️ فتح لوحة التحكم', url: 'https://mstkhby.com/admin' }]] } }
+            );
+          }
+        } catch (err) {
+          await this.sendMessage(env, chatId, `❌ تعذر جلب طلبات التوثيق: ${this.esc(err.message)}`);
         }
         break;
       }
@@ -268,14 +307,36 @@ const TelegramBot = {
         const fakeRequest = {
           json: async () => ({ userId, reason: reasonParts.join(' ') || 'مخالفة قواعد المنصة' })
         };
-        await api.adminBanUser(fakeRequest);
+        const result = await api.adminBanUser(fakeRequest, userId);
+        const body = await result.json();
+        if (!body.success) {
+          await this.sendMessage(env, chatId, `❌ ${this.esc(body.error || 'تعذر الحظر')}`);
+          break;
+        }
         await this.sendMessage(env, chatId, `⛔ تم حظر المستخدم <code>${this.esc(userId)}</code>.`);
+        break;
+      }
+
+      case '/unban': {
+        const [userId] = args;
+        if (!userId) {
+          await this.sendMessage(env, chatId, 'الاستخدام: <code>/unban user_id</code>');
+          break;
+        }
+        try {
+          await api.adminUnbanUser(userId);
+          await this.sendMessage(env, chatId, `✅ تم إلغاء حظر المستخدم <code>${this.esc(userId)}</code>.`);
+        } catch (err) {
+          await this.sendMessage(env, chatId, `❌ تعذر إلغاء الحظر: ${this.esc(err.message)}`);
+        }
         break;
       }
 
       default:
         await this.sendMessage(env, chatId, 'أمر غير معروف. أرسل /help لعرض الأوامر المتاحة.');
     }
+
+    FirebaseAdmin.logActivity(env, { type: 'bot_command', text: `أمر من الأدمن عبر تيليجرام: ${this.esc(command)}` });
   },
 
   async handleCallbackQuery(cq, env, api) {
@@ -291,11 +352,15 @@ const TelegramBot = {
       const fakeRequest = {
         json: async () => ({ reportId: id, action: action === 'approve' ? 'approve' : 'dismiss' })
       };
-      await api.adminHandleReport(fakeRequest);
-      await this.answerCallbackQuery(env, cq.id, action === 'approve' ? '✅ تم القبول' : '❌ تم التجاهل');
-      await this.editMessageText(env, chatId, cq.message.message_id,
-        `${cq.message.text}\n\n<b>${action === 'approve' ? '✅ تمت الموافقة على الإجراء' : '❌ تم تجاهل البلاغ'}</b>`
-      );
+      try {
+        await api.adminHandleReport(fakeRequest, id);
+        await this.answerCallbackQuery(env, cq.id, action === 'approve' ? '✅ تم القبول' : '❌ تم التجاهل');
+        await this.editMessageText(env, chatId, cq.message.message_id,
+          `${cq.message.text}\n\n<b>${action === 'approve' ? '✅ تمت الموافقة على الإجراء' : '❌ تم تجاهل البلاغ'}</b>`
+        );
+      } catch (err) {
+        await this.answerCallbackQuery(env, cq.id, `❌ فشل: ${err.message}`, true);
+      }
     }
   }
 };

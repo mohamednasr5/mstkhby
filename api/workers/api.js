@@ -1,5 +1,8 @@
 // api.js
 import TelegramBot from "./telegram-bot.js";
+import FirebaseAdmin from "./firebase-admin.js";
+
+const ADMIN_EMAILS = ["elfannanm@gmail.com", "mohamednasrofficial@gmail.com"];
 
 var MstkhbyAPI = {
   // NOTE: real config comes from Cloudflare (wrangler.toml `[vars]` +
@@ -75,6 +78,7 @@ var MstkhbyAPI = {
         const url = new URL(request2.url);
         const webhookUrl = `${url.origin}/api/telegram/webhook`;
         const result = await TelegramBot.setWebhook(env, webhookUrl);
+        this.ctx?.waitUntil?.(FirebaseAdmin.logActivity(env, { type: "bot_setup", text: `تم تسجيل الويبهوك: ${webhookUrl}` }));
         return this.jsonResponse({ success: true, webhookUrl, telegram: result });
       }
 
@@ -305,6 +309,10 @@ var MstkhbyAPI = {
           categories,
           preview: text || imageUrl
         }));
+        this.ctx?.waitUntil?.(FirebaseAdmin.logActivity(env, {
+          type: "content_blocked",
+          text: `تم حظر ${imageUrl ? "صورة" : "نص"} تلقائياً${categories ? " — " + categories : ""}`
+        }));
       }
 
       return {
@@ -333,7 +341,7 @@ var MstkhbyAPI = {
       case (path === "/api/messages/send" && request2.method === "POST"):
         return await this.sendMessage(request2, user);
       case (path === "/api/messages/inbox" && request2.method === "GET"):
-        return await this.getInbox(user);
+        return await this.getInbox(user, request2);
       case (path.match(/^\/api\/messages\/[^\/]+$/) && request2.method === "GET"):
         const messageId = path.split("/")[3];
         return await this.getMessage(messageId, user);
@@ -387,8 +395,8 @@ var MstkhbyAPI = {
       message: "Message sent successfully"
     }, 201);
   },
-  async getInbox(user) {
-    const url = new URL(request.url);
+  async getInbox(user, request2) {
+    const url = new URL(request2.url);
     const limit = parseInt(url.searchParams.get("limit") || "50");
     const filter = url.searchParams.get("filter") || "all";
     const startAfter = url.searchParams.get("startAfter");
@@ -506,6 +514,7 @@ var MstkhbyAPI = {
       if (!moderation.allowed) {
         await env.R2_BUCKET.delete(key);
         this.ctx?.waitUntil?.(TelegramBot.notifyMediaRejected(env, { reason: moderation.reason, key }));
+        this.ctx?.waitUntil?.(FirebaseAdmin.logActivity(env, { type: "media_rejected", text: `تم رفض ملف وسائط — ${moderation.reason || ""}` }));
         return this.jsonResponse({
           error: "Content not allowed",
           reason: moderation.reason
@@ -534,21 +543,27 @@ var MstkhbyAPI = {
     if (!isAdmin) {
       return this.jsonResponse({ error: "Admin access required" }, 403);
     }
+    const reportActionMatch = path.match(/^\/api\/admin\/reports\/([^\/]+)\/action$/);
+    const banMatch = path.match(/^\/api\/admin\/users\/([^\/]+)\/ban$/);
     switch (true) {
-      case (path === "/admin/users" && request2.method === "GET"):
+      case (path === "/api/admin/users" && request2.method === "GET"):
         return await this.adminGetUsers(request2);
-      case (path === "/admin/users/stats" && request2.method === "GET"):
+      case (path === "/api/admin/users/stats" && request2.method === "GET"):
         return await this.adminGetStats();
-      case (path === "/admin/messages" && request2.method === "GET"):
+      case (path === "/api/admin/messages" && request2.method === "GET"):
         return await this.adminGetMessages(request2);
-      case (path === "/admin/reports" && request2.method === "GET"):
+      case (path === "/api/admin/reports" && request2.method === "GET"):
         return await this.adminGetReports(request2);
-      case (path === "/admin/reports/:id/action" && request2.method === "POST"):
-        return await this.adminHandleReport(request2);
-      case (path === "/admin/users/:id/ban" && request2.method === "POST"):
-        return await this.adminBanUser(request2);
-      case (path === "/admin/content/moderate" && request2.method === "POST"):
+      case (!!reportActionMatch && request2.method === "POST"):
+        return await this.adminHandleReport(request2, reportActionMatch[1]);
+      case (!!banMatch && request2.method === "POST"):
+        return await this.adminBanUser(request2, banMatch[1]);
+      case (path === "/api/admin/content/moderate" && request2.method === "POST"):
         return await this.adminModerateContent(request2);
+      case (path === "/api/admin/telegram/status" && request2.method === "GET"):
+        return await this.adminTelegramStatus(request2);
+      case (path === "/api/admin/telegram/activity" && request2.method === "GET"):
+        return await this.adminTelegramActivity(request2);
       default:
         return this.jsonResponse({ error: "Admin endpoint not found" }, 404);
     }
@@ -557,70 +572,118 @@ var MstkhbyAPI = {
     const url = new URL(request2.url);
     const page = parseInt(url.searchParams.get("page") || "1");
     const limit = parseInt(url.searchParams.get("limit") || "20");
-    const search = url.searchParams.get("search");
+    const search = (url.searchParams.get("search") || "").toLowerCase();
+    const all = await FirebaseAdmin.get(this.env, "/users") || {};
+    let users = Object.entries(all).map(([uid, u]) => ({
+      id: uid,
+      displayName: u.profile?.displayName || "",
+      username: u.profile?.username || "",
+      email: u.profile?.email || "",
+      plan: u.entitlements?.plan || "free",
+      isVerified: !!u.entitlements?.isVerified,
+      status: u.entitlements?.status || "active",
+      createdAt: u.profile?.createdAt || null
+    }));
+    if (search) {
+      users = users.filter(u =>
+        u.displayName.toLowerCase().includes(search) ||
+        u.username.toLowerCase().includes(search) ||
+        u.email.toLowerCase().includes(search)
+      );
+    }
+    users.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const total = users.length;
+    const start = (page - 1) * limit;
     return this.jsonResponse({
       success: true,
-      users: [],
-      // User list
-      pagination: {
-        page,
-        limit,
-        total: 0,
-        totalPages: 0
-      }
+      users: users.slice(start, start + limit),
+      pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) }
     });
   },
   async adminGetStats() {
+    const [totalUsers, totalMessages, totalReports, reportsPending, verificationsPending] = await Promise.all([
+      FirebaseAdmin.count(this.env, "/users").catch(() => 0),
+      FirebaseAdmin.count(this.env, "/messages").catch(() => 0),
+      FirebaseAdmin.count(this.env, "/reports").catch(() => 0),
+      FirebaseAdmin.countWhere(this.env, "/reports", "status", "pending").catch(() => 0),
+      FirebaseAdmin.countWhere(this.env, "/verifications", "status", "pending").catch(() => 0)
+    ]);
     const stats = {
-      totalUsers: 15e4,
-      activeUsersToday: 12500,
-      totalMessages: 2e6,
-      messagesToday: 45e3,
-      premiumUsers: 2500,
-      reportsPending: 15,
-      averageMessagesPerUser: 13.3,
-      topCountries: ["Saudi Arabia", "Egypt", "UAE", "Kuwait", "Iraq"],
-      growthRate: "+12.5%"
+      totalUsers,
+      totalMessages,
+      totalReports,
+      reportsPending,
+      verificationsPending,
+      generatedAt: (/* @__PURE__ */ new Date()).toISOString()
     };
-    return this.jsonResponse({
-      success: true,
-      stats
-    });
+    return this.jsonResponse({ success: true, stats });
   },
   async adminGetMessages(request2) {
     const url = new URL(request2.url);
-    const filter = url.searchParams.get("filter");
-    const page = parseInt(url.searchParams.get("page") || "1");
-    return this.jsonResponse({
-      success: true,
-      messages: [],
-      pagination: { page, total: 0 }
-    });
+    const limit = parseInt(url.searchParams.get("limit") || "50");
+    const data = await FirebaseAdmin.get(this.env, "/messages", `limitToLast=${limit}`) || {};
+    const messages = Object.entries(data)
+      .map(([id, m]) => ({ id, ...m }))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return this.jsonResponse({ success: true, messages, pagination: { total: messages.length } });
   },
   async adminGetReports(request2) {
     const url = new URL(request2.url);
-    const status = url.searchParams.get("status");
-    return this.jsonResponse({
-      success: true,
-      reports: []
-    });
+    const status = url.searchParams.get("status") || "pending";
+    const limit = parseInt(url.searchParams.get("limit") || "50");
+    const reports = await FirebaseAdmin.listWhere(this.env, "/reports", "status", status, limit);
+    return this.jsonResponse({ success: true, reports });
   },
-  async adminHandleReport(request2) {
+  async adminHandleReport(request2, reportIdFromPath) {
     const data = await request2.json();
-    const { reportId, action, notes } = data;
-    return this.jsonResponse({
-      success: true,
-      message: `Report ${action}d`
-    });
+    const { reportId = reportIdFromPath, action, notes } = data;
+    if (!reportId || !["approve", "resolve", "dismiss", "ban"].includes(action)) {
+      return this.jsonResponse({ error: "reportId/action غير صالحين" }, 400);
+    }
+    const newStatus = action === "dismiss" ? "dismissed" : "resolved";
+    const updates = { [`/reports/${reportId}/status`]: newStatus };
+    if (notes) updates[`/reports/${reportId}/adminNotes`] = notes;
+
+    let bannedUserId = null;
+    if (action === "ban") {
+      const report = await FirebaseAdmin.get(this.env, `/reports/${reportId}`).catch(() => null);
+      const messageId = report?.messageId;
+      const msg = messageId ? await FirebaseAdmin.get(this.env, `/messages/${messageId}`).catch(() => null) : null;
+      if (msg?.senderId) {
+        bannedUserId = msg.senderId;
+        updates[`/users/${bannedUserId}/entitlements/status`] = "banned";
+      }
+    }
+    await FirebaseAdmin.patch(this.env, "/", updates);
+
+    // Ban notifications are handled centrally by the Firebase Function
+    // watching /users/{uid}/entitlements/status — it fires no matter
+    // which surface (dashboard, this endpoint, or /ban) caused it.
+    this.ctx?.waitUntil?.(FirebaseAdmin.logActivity(this.env, {
+      type: "report_handled",
+      text: `تمت معالجة البلاغ ${reportId} (${newStatus})${bannedUserId ? " + حظر المرسل" : ""}`
+    }));
+
+    return this.jsonResponse({ success: true, message: `Report ${newStatus}`, bannedUserId });
   },
-  async adminBanUser(request2) {
-    const data = await request2.json();
-    const { userId, reason, duration } = data;
-    this.ctx?.waitUntil?.(TelegramBot.notifyUserBanned(this.env, { userId, reason, duration }));
-    return this.jsonResponse({
-      success: true,
-      message: "User banned"
-    });
+  async adminBanUser(request2, userIdFromPath) {
+    const data = await request2.json().catch(() => ({}));
+    const { userId = userIdFromPath, reason, duration } = data;
+    if (!userId) {
+      return this.jsonResponse({ error: "userId مطلوب" }, 400);
+    }
+    const profile = await FirebaseAdmin.get(this.env, `/users/${userId}/profile`).catch(() => null);
+    if (!profile) {
+      return this.jsonResponse({ error: "لا يوجد مستخدم بهذا المعرف" }, 404);
+    }
+    await FirebaseAdmin.put(this.env, `/users/${userId}/entitlements/status`, "banned");
+    // The Firebase Function on /users/{uid}/entitlements/status sends
+    // the Telegram notification and logs the activity entry for us.
+    return this.jsonResponse({ success: true, message: "User banned" });
+  },
+  async adminUnbanUser(userId) {
+    await FirebaseAdmin.put(this.env, `/users/${userId}/entitlements/status`, "active");
+    return { success: true };
   },
   async adminModerateContent(request2) {
     const data = await request2.json();
@@ -629,6 +692,33 @@ var MstkhbyAPI = {
       success: true,
       message: `Content ${action}d`
     });
+  },
+  // ---------------------------------------------------------
+  // Telegram bot visibility for the admin dashboard's "البوت" tab
+  // ---------------------------------------------------------
+  async adminTelegramStatus(request2) {
+    if (!TelegramBot.isConfigured(this.env)) {
+      return this.jsonResponse({ success: true, configured: false });
+    }
+    const [me, webhookInfo] = await Promise.all([
+      TelegramBot.call(this.env, "getMe", {}),
+      TelegramBot.call(this.env, "getWebhookInfo", {})
+    ]);
+    return this.jsonResponse({
+      success: true,
+      configured: true,
+      bot: me?.result || null,
+      webhook: webhookInfo?.result || null
+    });
+  },
+  async adminTelegramActivity(request2) {
+    const url = new URL(request2.url);
+    const limit = parseInt(url.searchParams.get("limit") || "50");
+    const data = await FirebaseAdmin.get(this.env, "/botActivity", `limitToLast=${limit}`).catch(() => null) || {};
+    const activity = Object.entries(data)
+      .map(([id, a]) => ({ id, ...a }))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return this.jsonResponse({ success: true, activity });
   },
   // ==================== USERS ENDPOINTS ====================
   async handleUsers(request2, path) {
@@ -705,7 +795,12 @@ var MstkhbyAPI = {
       return true;
     }
     const user = await this.authenticateUser(request2);
-    return user?.claims?.admin === true;
+    if (!user) return false;
+    if (user.claims?.admin === true) return true;
+    // Mirrors database.rules.json — the same two Google accounts that
+    // can read/write admin data directly in Firebase can also call
+    // these Worker endpoints with their normal Firebase ID token.
+    return ADMIN_EMAILS.includes((user.email || "").toLowerCase());
   },
   // Verifies a real Firebase Auth ID token server-side via the
   // Identity Toolkit REST API (no crypto library needed in Workers).

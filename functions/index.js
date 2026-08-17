@@ -28,14 +28,36 @@
  *   of Telegram API calls comfortably for most projects.)
  */
 
-const { onValueCreated } = require("firebase-functions/v2/database");
+const { onValueCreated, onValueUpdated } = require("firebase-functions/v2/database");
 const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
+const admin = require("firebase-admin");
+
+if (!admin.apps.length) admin.initializeApp();
 
 const TELEGRAM_BOT_TOKEN = defineSecret("TELEGRAM_BOT_TOKEN");
 const TELEGRAM_ADMIN_CHAT_ID = defineSecret("TELEGRAM_ADMIN_CHAT_ID");
 
 const secrets = [TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID];
+
+/**
+ * Mirrors every real-time event this file notifies about into
+ * /botActivity, so the admin dashboard's "بوت تيليجرام" tab shows one
+ * unified feed of everything the bot has reported — regardless of
+ * whether the event came from here (direct Firebase writes) or from
+ * the Cloudflare Worker (moderation/bans/report actions).
+ */
+async function logActivity(type, text) {
+  try {
+    await admin.database().ref("botActivity").push({
+      type,
+      text,
+      createdAt: new Date().toISOString()
+    });
+  } catch (err) {
+    logger.error("logActivity failed", err);
+  }
+}
 
 function esc(str = "") {
   return String(str)
@@ -86,6 +108,7 @@ exports.telegramNotifyNewUser = onValueCreated(
       `المعرف: @${esc(profile.username)}\n` +
       `الرابط: mstkhby.com/${esc(profile.username)}`
     );
+    await logActivity("new_user", `مستخدم جديد: ${profile.displayName || profile.username || event.params.uid}`);
   }
 );
 
@@ -108,6 +131,7 @@ exports.telegramNotifyNewMessage = onValueCreated(
       (msg.messageType === "text" && msg.content ? `المحتوى: <i>${esc(msg.content).slice(0, 150)}</i>\n` : "") +
       `المستلم: <code>${esc(msg.recipientId || "")}</code>`
     );
+    await logActivity("new_message", `رسالة ${msg.messageType || "text"} جديدة إلى ${msg.recipientId || ""}`);
   }
 );
 
@@ -129,6 +153,7 @@ exports.telegramNotifyNewReport = onValueCreated(
         { text: "فتح لوحة التحكم", url: "https://mstkhby.com/admin" }
       ]] } }
     );
+    await logActivity("new_report", `بلاغ جديد — ${report.reason || "غير محدد"}`);
   }
 );
 
@@ -147,5 +172,30 @@ exports.telegramNotifyWarningIssued = onValueCreated(
       `المعرف: <code>${esc(uid)}</code>\n` +
       `السبب: ${esc(warning.reason || "غير محدد")}`
     );
+    await logActivity("warning_issued", `تحذير لمستخدم ${uid} — ${warning.reason || "غير محدد"}`);
+  }
+);
+
+/**
+ * ⛔ Ban status changed on a user — fires whether the admin toggled it
+ * from the dashboard (admin/js/admin.js writes directly to this path)
+ * or the Worker did it via a Telegram /ban command. Only notifies on
+ * an actual transition, not on unrelated writes to the same node.
+ */
+exports.telegramNotifyBanStatusChanged = onValueUpdated(
+  { ref: "/users/{uid}/entitlements/status", secrets },
+  async (event) => {
+    const before = event.data.before.val();
+    const after = event.data.after.val();
+    if (before === after) return;
+    const { uid } = event.params;
+
+    if (after === "banned") {
+      await sendTelegram(`⛔ <b>تم حظر مستخدم</b>\nالمعرف: <code>${esc(uid)}</code>`);
+      await logActivity("user_banned", `تم حظر المستخدم ${uid}`);
+    } else if (before === "banned") {
+      await sendTelegram(`✅ <b>تم إلغاء حظر مستخدم</b>\nالمعرف: <code>${esc(uid)}</code>`);
+      await logActivity("user_unbanned", `تم إلغاء حظر المستخدم ${uid}`);
+    }
   }
 );

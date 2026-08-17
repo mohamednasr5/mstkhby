@@ -23,6 +23,24 @@ FIREBASE_API_KEY = "AIzaSyB9Z_8Zk_bfAUvfFgvoXZ8oAjF9se1eE_Q"
 # Secrets — do NOT put real values here. Set them with:
 #   wrangler secret put ADMIN_TOKEN
 #   wrangler secret put NVIDIA_API_KEY
+#   wrangler secret put TELEGRAM_BOT_TOKEN
+#   wrangler secret put TELEGRAM_ADMIN_CHAT_ID
+#   wrangler secret put TELEGRAM_WEBHOOK_SECRET
+#   wrangler secret put FIREBASE_SERVICE_ACCOUNT_KEY
 # NVIDIA_API_KEY powers AI content moderation for messages and uploaded
 # media (nvidia/nemotron-3.5-content-safety). Get a free key at
 # https://build.nvidia.com (Get API Key, top right, after sign-in).
+#
+# FIREBASE_SERVICE_ACCOUNT_KEY = the full JSON content of a service
+# account key (Firebase Console → Project settings → Service accounts
+# → Generate new private key). Required by api/workers/firebase-admin.js
+# for every real admin read/write (stats, users, bans, reports) and by
+# the Telegram bot's /stats, /reports, /ban, /unban, /verifications.
+#
+# TELEGRAM_WEBHOOK_SECRET = any random string you pick yourself — it's
+# just a shared secret Telegram echoes back on every webhook call so
+# this Worker can verify the request really came from Telegram.
+# After setting all Telegram secrets, register the webhook once by
+# calling (with your ADMIN_TOKEN):
+#   curl -X POST https://mstkhby.nonm1724.workers.dev/api/telegram/set-webhook \
+#     -H "X-Admin-Token: YOUR_ADMIN_TOKEN"

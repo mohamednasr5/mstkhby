@@ -100,6 +100,13 @@
                         </a>
                     </li>
                     <li>
+                        <a href="#bot" class="nav-item" data-page="bot">
+                            <span class="nav-icon">🤖</span>
+                            <span>بوت تيليجرام</span>
+                            <span class="nav-badge" id="sidebarBotBadge" hidden>●</span>
+                        </a>
+                    </li>
+                    <li>
                         <a href="#analytics" class="nav-item" data-page="analytics">
                             <span class="nav-icon">📈</span>
                             <span>التحليلات</span>
@@ -375,6 +382,51 @@
 
                 <div class="moderation-queue" id="moderationQueue">
                     <div style="text-align:center;padding:40px;color:#64748b;">لا توجد عناصر بانتظار المراجعة حالياً</div>
+                </div>
+            </section>
+
+            <!-- Telegram Bot Page -->
+            <section class="admin-page" id="page-bot">
+                <div class="page-header">
+                    <h1>بوت تيليجرام</h1>
+                    <p>حالة البوت المباشرة، وكل شيء يحدث على الموقع والبوت في مكان واحد</p>
+                </div>
+
+                <div class="stats-grid" id="botStatusCards">
+                    <div class="stat-card">
+                        <div class="stat-icon active">🤖</div>
+                        <div class="stat-info">
+                            <h3 id="botStatusValue">—</h3>
+                            <p>حالة الاتصال</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon messages">🔗</div>
+                        <div class="stat-info">
+                            <h3 id="botWebhookValue">—</h3>
+                            <p>الويبهوك</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon users">👤</div>
+                        <div class="stat-info">
+                            <h3 id="botUsernameValue">—</h3>
+                            <p>اسم البوت</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page-header" style="margin-top:24px;">
+                    <button class="btn btn-primary btn-sm" id="botRefreshBtn" type="button">🔄 تحديث الحالة</button>
+                    <button class="btn btn-outline btn-sm" id="botRegisterWebhookBtn" type="button">⚙️ تسجيل الويبهوك</button>
+                </div>
+
+                <div class="page-header" style="margin-top:16px;">
+                    <h1 style="font-size:18px;">سجل الأحداث المباشر</h1>
+                    <p>كل حدث يخص الموقع أو البوت — مستخدمين جدد، رسائل، بلاغات، حظر، تنبيهات مراجعة</p>
+                </div>
+                <div class="moderation-queue" id="botActivityList">
+                    <div style="text-align:center;padding:40px;color:#64748b;">جاري تحميل السجل...</div>
                 </div>
             </section>
 

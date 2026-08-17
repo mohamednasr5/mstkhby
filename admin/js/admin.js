@@ -222,6 +222,9 @@ class AdminDashboard {
         document.getElementById('reportStatusFilter')?.addEventListener('change', () => this.loadReports());
         document.getElementById('reportTypeFilter')?.addEventListener('change', () => this.loadReports());
 
+        document.getElementById('botRefreshBtn')?.addEventListener('click', () => this.loadBotPage());
+        document.getElementById('botRegisterWebhookBtn')?.addEventListener('click', () => this.registerBotWebhook());
+
         document.getElementById('saveGeneralSettingsBtn')?.addEventListener('click', () => this.saveGeneralSettings());
         document.getElementById('saveNotifSettingsBtn')?.addEventListener('click', () => this.saveNotifSettings());
         document.getElementById('saveSecuritySettingsBtn')?.addEventListener('click', () => this.saveSecuritySettings());
@@ -284,6 +287,9 @@ class AdminDashboard {
                 break;
             case 'verifications':
                 this.loadVerifications();
+                break;
+            case 'bot':
+                this.loadBotPage();
                 break;
             case 'analytics':
                 this.loadAnalytics();
@@ -614,6 +620,100 @@ class AdminDashboard {
                     <p>${this.escapeHtml(e.detail)}</p>
                 </div>
                 <span class="activity-time">${this.timeAgo(e.ts)}</span>
+            </div>
+        `).join('');
+    }
+
+    // ==================== TELEGRAM BOT PAGE ====================
+
+    async apiFetch(path, options = {}) {
+        const token = await (window.MstkhbyFirebase?.getIdToken?.() ?? (window.MstkhbyFirebase?.auth || firebase.auth()).currentUser?.getIdToken());
+        const base = window.MstkhbyFirebase?.apiBaseUrl || '';
+        const resp = await fetch(`${base}${path}`, {
+            ...options,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            }
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        return data;
+    }
+
+    async loadBotPage() {
+        this.watchBotActivity();
+
+        const statusEl = document.getElementById('botStatusValue');
+        const webhookEl = document.getElementById('botWebhookValue');
+        const usernameEl = document.getElementById('botUsernameValue');
+        if (statusEl) statusEl.textContent = '...جاري الفحص';
+
+        try {
+            const data = await this.apiFetch('/api/admin/telegram/status');
+            if (!data.configured) {
+                if (statusEl) statusEl.textContent = '⚪ غير مُعد';
+                if (webhookEl) webhookEl.textContent = '—';
+                if (usernameEl) usernameEl.textContent = '—';
+                return;
+            }
+            const hasWebhook = !!data.webhook?.url;
+            if (statusEl) statusEl.textContent = data.bot ? '🟢 متصل' : '🔴 غير متصل';
+            if (webhookEl) webhookEl.textContent = hasWebhook ? '✅ مسجّل' : '⚠️ غير مسجّل';
+            if (usernameEl) usernameEl.textContent = data.bot?.username ? `@${data.bot.username}` : '—';
+
+            if (data.webhook?.last_error_message) {
+                this.showToast('تنبيه البوت', `آخر خطأ ويبهوك: ${data.webhook.last_error_message}`, 'error');
+            }
+        } catch (err) {
+            if (statusEl) statusEl.textContent = '❌ خطأ';
+            this.showToast('خطأ', `تعذر جلب حالة البوت: ${err.message}`, 'error');
+        }
+    }
+
+    async registerBotWebhook() {
+        try {
+            await this.apiFetch('/api/telegram/set-webhook', { method: 'POST' });
+            this.showToast('تم', 'تم تسجيل الويبهوك بنجاح', 'success');
+            this.loadBotPage();
+        } catch (err) {
+            this.showToast('خطأ', `تعذر تسجيل الويبهوك: ${err.message}`, 'error');
+        }
+    }
+
+    watchBotActivity() {
+        if (this._botActivityRef) return; // already listening
+        this._botActivityRef = this.database.ref('botActivity').limitToLast(50);
+        this._botActivityRef.on('value', (snap) => this.renderBotActivity(snap.val() || {}));
+    }
+
+    renderBotActivity(data) {
+        const container = document.getElementById('botActivityList');
+        if (!container) return;
+
+        const icons = {
+            new_user: '👤', new_message: '📩', new_report: '🚩', report_handled: '✅',
+            content_blocked: '🚫', media_rejected: '🖼️', warning_issued: '⚠️',
+            user_banned: '⛔', user_unbanned: '✅', bot_command: '🤖', bot_setup: '⚙️'
+        };
+
+        const events = Object.values(data)
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+            .slice(0, 50);
+
+        if (events.length === 0) {
+            container.innerHTML = this.emptyState('لا يوجد نشاط بعد');
+            return;
+        }
+
+        container.innerHTML = events.map(e => `
+            <div class="activity-item">
+                <span class="activity-icon">${icons[e.type] || '•'}</span>
+                <div class="activity-details">
+                    <p>${this.escapeHtml(e.text || '')}</p>
+                </div>
+                <span class="activity-time">${this.timeAgo(new Date(e.createdAt).getTime())}</span>
             </div>
         `).join('');
     }
