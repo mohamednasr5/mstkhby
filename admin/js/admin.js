@@ -224,6 +224,7 @@ class AdminDashboard {
 
         document.getElementById('botRefreshBtn')?.addEventListener('click', () => this.loadBotPage());
         document.getElementById('botRegisterWebhookBtn')?.addEventListener('click', () => this.registerBotWebhook());
+        document.getElementById('botDiagnoseBtn')?.addEventListener('click', () => this.diagnoseBotAccess());
 
         document.getElementById('saveGeneralSettingsBtn')?.addEventListener('click', () => this.saveGeneralSettings());
         document.getElementById('saveNotifSettingsBtn')?.addEventListener('click', () => this.saveNotifSettings());
@@ -668,7 +669,10 @@ class AdminDashboard {
             }
         } catch (err) {
             if (statusEl) statusEl.textContent = '❌ خطأ';
-            this.showToast('خطأ', `تعذر جلب حالة البوت: ${err.message}`, 'error');
+            const hint = /admin access/i.test(err.message)
+                ? ' — تأكد أنك نشرت آخر نسخة من الـ Worker (wrangler deploy داخل api/workers) وأن حسابك من الإيميلين المصرح لهما'
+                : '';
+            this.showToast('خطأ', `تعذر جلب حالة البوت: ${err.message}${hint}`, 'error');
         }
     }
 
@@ -682,10 +686,43 @@ class AdminDashboard {
         }
     }
 
+    async diagnoseBotAccess() {
+        const box = document.getElementById('botDiagnoseResult');
+        if (!box) return;
+        box.style.display = 'block';
+        box.textContent = 'جاري الفحص...';
+        try {
+            const data = await this.apiFetch('/api/whoami');
+            box.textContent =
+                `email: ${data.email || '(لا يوجد)'}\n` +
+                `uid: ${data.uid || '(لا يوجد)'}\n` +
+                `authenticated: ${data.authenticated}\n` +
+                `isAdmin: ${data.isAdmin}\n\n` +
+                (data.isAdmin
+                    ? '✅ التوكن سليم والحساب مصرح له — لو لسه بتشوف "Admin access required" فالمشكلة إن نسخة الـ Worker القديمة لسه مرفوعة، لازم تعمل wrangler deploy من مجلد api/workers.'
+                    : '❌ التوكن وصل للـ Worker بس الإيميل مش من الإيميلين المصرح لهما، أو التحقق فشل. تأكد إنك مسجل دخول بنفس الحساب الظاهر فوق.');
+        } catch (err) {
+            box.textContent = `تعذر الاتصال بالـ Worker أصلاً: ${err.message}\nتأكد إن الـ Worker منشور على mstkhby.nonm1724.workers.dev`;
+        }
+    }
+
     watchBotActivity() {
         if (this._botActivityRef) return; // already listening
+        const container = document.getElementById('botActivityList');
         this._botActivityRef = this.database.ref('botActivity').limitToLast(50);
-        this._botActivityRef.on('value', (snap) => this.renderBotActivity(snap.val() || {}));
+        this._botActivityRef.on('value',
+            (snap) => this.renderBotActivity(snap.val() || {}),
+            (err) => {
+                console.error('botActivity listener error:', err);
+                if (container) {
+                    container.innerHTML = `<div style="text-align:center;padding:40px;color:#f87171;">
+                        تعذر تحميل السجل: ${this.escapeHtml(err.message)}<br>
+                        <span style="color:#64748b;font-size:13px;">تأكد أن قواعد قاعدة البيانات (database.rules.json) منشورة: firebase deploy --only database</span>
+                    </div>`;
+                }
+                this._botActivityRef = null; // allow retry on next visit
+            }
+        );
     }
 
     renderBotActivity(data) {

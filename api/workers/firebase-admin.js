@@ -162,6 +162,92 @@ const FirebaseAdmin = {
     } catch (err) {
       console.error('logActivity failed:', err.message);
     }
+  },
+
+  /**
+   * Verifies a Firebase Auth ID token entirely locally — decodes the
+   * JWT and checks its RS256 signature against Google's public keys
+   * (JWK endpoint), instead of calling the Identity Toolkit REST API.
+   * This avoids failures caused by API-key HTTP-referrer restrictions
+   * (a public web API key is normally locked to the site's own
+   * domains, which blocks server-to-server calls from a Worker) and
+   * is the standard way to verify Firebase ID tokens outside the
+   * Admin SDK. Needs only FIREBASE_PROJECT_ID (no API key, no secret).
+   */
+  _jwkCache: null, // { keys, expiresAt }
+
+  async _getGoogleJWKs() {
+    if (this._jwkCache && this._jwkCache.expiresAt > Date.now()) {
+      return this._jwkCache.keys;
+    }
+    const resp = await fetch('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com');
+    if (!resp.ok) throw new Error(`تعذر جلب مفاتيح Google: ${resp.status}`);
+    const { keys } = await resp.json();
+    const maxAge = /max-age=(\d+)/.exec(resp.headers.get('cache-control') || '')?.[1];
+    this._jwkCache = { keys, expiresAt: Date.now() + (maxAge ? parseInt(maxAge, 10) * 1000 : 3600000) };
+    return keys;
+  },
+
+  _b64urlToBytes(str) {
+    const pad = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/') + pad);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  },
+
+  async verifyIdToken(env, idToken) {
+    const parts = idToken.split('.');
+    if (parts.length !== 3) return null;
+    const [headerB64, payloadB64, sigB64] = parts;
+
+    let header, payload;
+    try {
+      header = JSON.parse(new TextDecoder().decode(this._b64urlToBytes(headerB64)));
+      payload = JSON.parse(new TextDecoder().decode(this._b64urlToBytes(payloadB64)));
+    } catch {
+      return null;
+    }
+
+    const projectId = env?.FIREBASE_PROJECT_ID;
+    const now = Math.floor(Date.now() / 1000);
+    if (
+      header.alg !== 'RS256' ||
+      !payload.sub ||
+      payload.aud !== projectId ||
+      payload.iss !== `https://securetoken.google.com/${projectId}` ||
+      payload.exp <= now ||
+      payload.iat > now + 60
+    ) {
+      return null;
+    }
+
+    const jwks = await this._getGoogleJWKs();
+    const jwk = jwks.find((k) => k.kid === header.kid);
+    if (!jwk) return null;
+
+    const key = await crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const valid = await crypto.subtle.verify(
+      { name: 'RSASSA-PKCS1-v1_5' },
+      key,
+      this._b64urlToBytes(sigB64),
+      new TextEncoder().encode(`${headerB64}.${payloadB64}`)
+    );
+    if (!valid) return null;
+
+    return {
+      id: payload.sub,
+      email: payload.email,
+      emailVerified: !!payload.email_verified,
+      displayName: payload.name,
+      claims: payload
+    };
   }
 };
 
